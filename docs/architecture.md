@@ -1,9 +1,13 @@
 # 文档评审系统 - 技术架构设计文档
 
-**版本**: 1.0
+**版本**: 2.0
 **日期**: 2026-03-05
 **作者**: fullstack-dev
 **状态**: 待审核
+
+**变更记录**:
+- v2.0: 技术栈调整（Vue+MyBatis Plus+Sa-Token）、新增完整RBAC权限管理模块
+- v1.0: 初稿
 
 ---
 
@@ -13,35 +17,46 @@
 
 | 层级 | 技术选型 | 版本 | 说明 |
 |------|----------|------|------|
-| **前端** | React + TypeScript | 18.x / 5.x | 现代化UI框架，组件化开发 |
-| **UI组件库** | Ant Design | 5.x | 企业级UI组件，快速开发 |
+| **前端** | Vue 3 + TypeScript | 3.4.x / 5.x | 现代化响应式框架，组合式API |
+| **UI组件库** | Element Plus | 2.5.x | Vue3生态企业级UI组件库 |
 | **构建工具** | Vite | 5.x | 快速构建，热更新 |
+| **状态管理** | Pinia | 2.x | Vue3官方推荐状态管理 |
 | **后端框架** | Spring Boot | 3.2.x | Java生态，企业级应用 |
-| **ORM** | Spring Data JPA | 3.2.x | 简化数据访问层 |
+| **ORM** | MyBatis Plus | 3.5.x | 增强型MyBatis，简化CRUD |
+| **认证框架** | Sa-Token | 1.37.x | 轻量级权限认证框架 |
 | **数据库** | PostgreSQL | 15.x | 开源关系型数据库 |
 | **文件存储** | MinIO | RELEASE.2024-x | 对象存储，S3兼容 |
 | **缓存** | Redis | 7.x | 会话管理、热点数据缓存 |
-| **认证** | Spring Security + LDAP | 3.2.x | 安全框架 + AD域集成 |
 
 ### 1.2 选型理由
 
 #### 前端选型
 
-**React + TypeScript + Ant Design**
+**Vue 3 + TypeScript + Element Plus**
 
-- **React**: 社区活跃，组件复用性强，适合构建复杂交互界面
+- **Vue 3**: 组合式API，更好的TypeScript支持，性能优化
 - **TypeScript**: 类型安全，减少运行时错误，提升代码质量
-- **Ant Design**: 企业级UI组件库，设计规范完善，开发效率高
+- **Element Plus**: Vue3生态最成熟的UI组件库，企业级组件完善
+- **Pinia**: 轻量级状态管理，更好的TypeScript支持
 - **Vite**: 构建速度快，开发体验好
 
 #### 后端选型
 
-**Spring Boot + Spring Data JPA**
+**Spring Boot + MyBatis Plus + Sa-Token**
 
 - **Spring Boot**: 约定优于配置，快速搭建企业级应用
-- **Spring Data JPA**: 简化数据访问层开发，支持复杂查询
-- **Spring Security**: 成熟的安全框架，支持多种认证方式
-- **LDAP**: 标准AD域集成方案
+- **MyBatis Plus**: 
+  - 无侵入：MyBatis Plus在MyBatis基础上只做增强不做改变
+  - 强大的CRUD操作：内置通用Mapper、Service，少量配置即可实现单表大部分CRUD操作
+  - 支持Lambda表达式：方便编写各类查询条件
+  - 内置分页插件：基于MyBatis物理分页，配置好插件后即可使用
+  - 代码生成器：可快速生成Entity、Mapper、Service、Controller代码
+- **Sa-Token**:
+  - 轻量级：jar包仅100KB+，无复杂依赖
+  - 功能强大：登录认证、权限认证、Session会话、单点登录、OAuth2.0
+  - 简单易用：配置简单，API简洁
+  - 支持多账号认证体系：多登录类型、多Token风格
+  - 内置权限验证：支持角色、权限、菜单三级权限
 
 #### 数据存储选型
 
@@ -68,12 +83,12 @@
                                     │ HTTPS
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                            前端层 (React SPA)                            │
+│                            前端层 (Vue 3 SPA)                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
 │  │  文档管理   │  │  评审流程   │  │  归档检索   │  │  系统设置   │    │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                     状态管理 (Zustand)                           │   │
+│  │                     状态管理 (Pinia)                             │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                     API服务层 (Axios)                            │   │
@@ -90,15 +105,15 @@
 │  └─────────────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                     服务层 (Business Logic)                      │   │
-│  │  AuthService | DocumentService | ReviewService | ...            │   │
+│  │  AuthService | DocumentService | ReviewService | PermissionService │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                     数据访问层 (Repository)                      │   │
-│  │  UserRepository | DocumentRepository | ReviewRepository | ...   │   │
+│  │                     数据访问层 (MyBatis Plus)                    │   │
+│  │  UserMapper | DocumentMapper | ReviewMapper | MenuMapper | ...  │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                     安全层 (Spring Security)                     │   │
-│  │  JWT认证 | RBAC权限 | LDAP集成 | 方法级安全                      │   │
+│  │                     安全层 (Sa-Token)                            │   │
+│  │  登录认证 | RBAC权限 | 菜单权限 | 数据权限 | LDAP集成             │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
@@ -109,10 +124,11 @@
 │   PostgreSQL      │  │      MinIO        │  │      Redis        │
 │   (元数据存储)    │  │   (文件存储)      │  │   (缓存/会话)     │
 │                   │  │                   │  │                   │
-│ - 用户数据        │  │ - 文档文件        │  │ - JWT会话         │
+│ - 用户数据        │  │ - 文档文件        │  │ - Sa-Token会话    │
 │ - 文档元数据      │  │ - 附件            │  │ - 评审进度缓存    │
 │ - 评审记录        │  │ - 导出报告        │  │ - 配置缓存        │
-│ - 评论数据        │  │                   │  │                   │
+│ - 评论数据        │  │                   │  │ - 权限缓存        │
+│ - RBAC权限数据    │  │                   │  │                   │
 └───────────────────┘  └───────────────────┘  └───────────────────┘
             │
             │ LDAP协议
@@ -128,7 +144,46 @@
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 部署架构
+### 2.2 RBAC权限模型架构
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          RBAC权限模型                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────┐       ┌─────────┐       ┌─────────┐       ┌─────────┐    │
+│  │  用户   │──────→│ 用户角色│←──────│  角色   │──────→│角色菜单 │    │
+│  │  User   │  N:N  │UserRole │  N:N  │  Role   │  N:N  │RoleMenu │    │
+│  └─────────┘       └─────────┘       └─────────┘       └─────────┘    │
+│       │                                    │                   │        │
+│       │                                    │                   │        │
+│       │                              ┌─────┴─────┐             │        │
+│       │                              │           │             │        │
+│       │                        ┌─────┴─────┐     │             │        │
+│       │                        │           │     │             │        │
+│       │                   ┌────┴────┐ ┌────┴────┐│             │        │
+│       │                   │角色权限 │ │数据权限 ││             │        │
+│       │                   │RolePerm │ │RoleData ││             │        │
+│       │                   └────┬────┘ └────┬────┘│             │        │
+│       │                        │           │     │             │        │
+│       │                        │           │     ▼             │        │
+│       │                        ▼           │  ┌─────────┐     │        │
+│       │                   ┌─────────┐      │  │  菜单   │     │        │
+│       │                   │  权限   │      │  │  Menu   │     │        │
+│       │                   │Permission│     │  └─────────┘     │        │
+│       │                   └─────────┘      │                   │        │
+│       │                                    │                   │        │
+│       └────────────────────────────────────┴───────────────────┘        │
+│                                                                         │
+│  权限粒度：                                                              │
+│  1. 菜单权限：控制用户可见菜单                                          │
+│  2. 按钮权限：控制页面按钮的显示/隐藏                                   │
+│  3. 数据权限：控制用户可访问的数据范围（全部/本部门/本人等）            │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.3 部署架构
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -170,7 +225,8 @@ doc-review-system/
 │   ├── src/main/java/com/docreview/
 │   │   ├── DocReviewApplication.java          # 启动类
 │   │   ├── config/                             # 配置模块
-│   │   │   ├── SecurityConfig.java            # 安全配置
+│   │   │   ├── SaTokenConfig.java             # Sa-Token配置
+│   │   │   ├── MybatisPlusConfig.java         # MyBatis Plus配置
 │   │   │   ├── LdapConfig.java                # LDAP配置
 │   │   │   ├── MinioConfig.java               # MinIO配置
 │   │   │   ├── RedisConfig.java               # Redis配置
@@ -182,6 +238,9 @@ doc-review-system/
 │   │   │   ├── CommentController.java         # 评论接口
 │   │   │   ├── ArchiveController.java         # 归档接口
 │   │   │   ├── UserController.java            # 用户接口
+│   │   │   ├── RoleController.java            # 角色管理接口
+│   │   │   ├── MenuController.java            # 菜单管理接口
+│   │   │   ├── PermissionController.java      # 权限管理接口
 │   │   │   └── SystemController.java          # 系统配置接口
 │   │   ├── service/                            # 服务层
 │   │   │   ├── AuthService.java               # 认证服务
@@ -190,17 +249,31 @@ doc-review-system/
 │   │   │   ├── CommentService.java            # 评论服务
 │   │   │   ├── ArchiveService.java            # 归档服务
 │   │   │   ├── UserService.java               # 用户服务
+│   │   │   ├── RoleService.java               # 角色服务
+│   │   │   ├── MenuService.java               # 菜单服务
+│   │   │   ├── PermissionService.java         # 权限服务
+│   │   │   ├── DataScopeService.java          # 数据权限服务
 │   │   │   ├── FileService.java               # 文件服务
 │   │   │   ├── NotificationService.java       # 通知服务
 │   │   │   └── LdapService.java               # LDAP服务
-│   │   ├── repository/                         # 数据访问层
-│   │   │   ├── UserRepository.java
-│   │   │   ├── DocumentRepository.java
-│   │   │   ├── ReviewRepository.java
-│   │   │   ├── CommentRepository.java
-│   │   │   └── SystemConfigRepository.java
+│   │   ├── mapper/                             # MyBatis Plus Mapper
+│   │   │   ├── UserMapper.java
+│   │   │   ├── RoleMapper.java
+│   │   │   ├── MenuMapper.java
+│   │   │   ├── PermissionMapper.java
+│   │   │   ├── DocumentMapper.java
+│   │   │   ├── ReviewMapper.java
+│   │   │   ├── CommentMapper.java
+│   │   │   └── SystemConfigMapper.java
 │   │   ├── entity/                             # 实体类
 │   │   │   ├── User.java
+│   │   │   ├── Role.java
+│   │   │   ├── Menu.java
+│   │   │   ├── Permission.java
+│   │   │   ├── UserRole.java
+│   │   │   ├── RoleMenu.java
+│   │   │   ├── RolePermission.java
+│   │   │   ├── DataScope.java
 │   │   │   ├── Document.java
 │   │   │   ├── Review.java
 │   │   │   ├── Comment.java
@@ -211,26 +284,31 @@ doc-review-system/
 │   │   │   │   ├── LoginRequest.java
 │   │   │   │   ├── DocumentUploadRequest.java
 │   │   │   │   ├── ReviewSubmitRequest.java
+│   │   │   │   ├── RoleRequest.java
+│   │   │   │   ├── MenuRequest.java
 │   │   │   │   └── ...
 │   │   │   └── response/
 │   │   │       ├── UserResponse.java
 │   │   │       ├── DocumentResponse.java
 │   │   │       ├── ReviewResponse.java
+│   │   │       ├── MenuTreeResponse.java
 │   │   │       └── ...
 │   │   ├── enums/                              # 枚举类
 │   │   │   ├── DocumentStatus.java            # 文档状态
 │   │   │   ├── ReviewDecision.java            # 评审决定
 │   │   │   ├── UserRole.java                  # 用户角色
+│   │   │   ├── MenuType.java                  # 菜单类型
+│   │   │   ├── DataScopeType.java             # 数据权限类型
 │   │   │   └── NotificationType.java          # 通知类型
 │   │   ├── exception/                          # 异常处理
 │   │   │   ├── GlobalExceptionHandler.java
 │   │   │   ├── BusinessException.java
 │   │   │   └── ErrorCode.java
 │   │   ├── security/                           # 安全模块
-│   │   │   ├── JwtTokenProvider.java          # JWT提供者
-│   │   │   ├── JwtAuthenticationFilter.java   # JWT过滤器
-│   │   │   ├── CustomUserDetailsService.java  # 用户详情服务
-│   │   │   └── LdapAuthenticationProvider.java # LDAP认证提供者
+│   │   │   ├── StpInterfaceImpl.java          # Sa-Token权限接口实现
+│   │   │   ├── StpUtil.java                   # Sa-Token工具类
+│   │   │   ├── DataScopeAspect.java           # 数据权限切面
+│   │   │   └── LdapAuthService.java           # LDAP认证服务
 │   │   └── util/                               # 工具类
 │   │       ├── FileUtils.java
 │   │       └── DateUtils.java
@@ -238,16 +316,20 @@ doc-review-system/
 │       ├── application.yml                     # 主配置
 │       ├── application-dev.yml                 # 开发环境配置
 │       ├── application-prod.yml                # 生产环境配置
-│       └── db/migration/                       # 数据库迁移脚本
+│       └── mapper/                             # MyBatis XML映射文件
+│           ├── UserMapper.xml
+│           ├── RoleMapper.xml
+│           ├── MenuMapper.xml
+│           └── ...
 ├── frontend/
 │   ├── src/
-│   │   ├── main.tsx                           # 入口文件
-│   │   ├── App.tsx                            # 根组件
+│   │   ├── main.ts                            # 入口文件
+│   │   ├── App.vue                            # 根组件
 │   │   ├── components/                         # 组件
 │   │   │   ├── Layout/
-│   │   │   │   ├── MainLayout.tsx
-│   │   │   │   ├── Header.tsx
-│   │   │   │   └── Sidebar.tsx
+│   │   │   │   ├── MainLayout.vue
+│   │   │   │   ├── Header.vue
+│   │   │   │   └── Sidebar.vue
 │   │   │   ├── common/                        # 通用组件
 │   │   │   │   ├── Button/
 │   │   │   │   ├── Input/
@@ -257,34 +339,50 @@ doc-review-system/
 │   │   │       ├── DocumentUpload/
 │   │   │       ├── ReviewProgress/
 │   │   │       └── CommentList/
-│   │   ├── pages/                              # 页面
-│   │   │   ├── Login.tsx
-│   │   │   ├── Dashboard.tsx
-│   │   │   ├── DocumentList.tsx
-│   │   │   ├── DocumentDetail.tsx
-│   │   │   ├── ReviewPage.tsx
-│   │   │   ├── Archive.tsx
-│   │   │   └── SystemSettings.tsx
-│   │   ├── services/                           # API服务
-│   │   │   ├── api.ts                         # API客户端
+│   │   ├── views/                              # 页面
+│   │   │   ├── Login.vue
+│   │   │   ├── Dashboard.vue
+│   │   │   ├── DocumentList.vue
+│   │   │   ├── DocumentDetail.vue
+│   │   │   ├── ReviewPage.vue
+│   │   │   ├── Archive.vue
+│   │   │   ├── system/                        # 系统管理
+│   │   │   │   ├── UserManage.vue
+│   │   │   │   ├── RoleManage.vue
+│   │   │   │   ├── MenuManage.vue
+│   │   │   │   └── PermissionManage.vue
+│   │   │   └── SystemSettings.vue
+│   │   ├── api/                                # API服务
+│   │   │   ├── request.ts                     # Axios封装
 │   │   │   ├── auth.ts
 │   │   │   ├── document.ts
 │   │   │   ├── review.ts
-│   │   │   └── user.ts
-│   │   ├── stores/                             # 状态管理
+│   │   │   ├── user.ts
+│   │   │   ├── role.ts
+│   │   │   └── menu.ts
+│   │   ├── stores/                             # Pinia状态管理
 │   │   │   ├── authStore.ts
 │   │   │   ├── documentStore.ts
-│   │   │   └── notificationStore.ts
+│   │   │   ├── menuStore.ts
+│   │   │   └── permissionStore.ts
+│   │   ├── router/                             # 路由配置
+│   │   │   ├── index.ts
+│   │   │   └── guards.ts                      # 路由守卫
 │   │   ├── hooks/                              # 自定义Hooks
 │   │   │   ├── useAuth.ts
+│   │   │   ├── usePermission.ts
 │   │   │   └── useNotification.ts
 │   │   ├── types/                              # TypeScript类型
 │   │   │   ├── user.ts
 │   │   │   ├── document.ts
-│   │   │   └── review.ts
+│   │   │   ├── review.ts
+│   │   │   ├── menu.ts
+│   │   │   └── permission.ts
+│   │   ├── directives/                         # 自定义指令
+│   │   │   └── permission.ts                  # 权限指令 v-permission
 │   │   └── utils/                              # 工具函数
-│   │       ├── request.ts
-│   │       └── format.ts
+│   │       ├── format.ts
+│   │       └── storage.ts
 │   └── package.json
 ├── docker-compose.yml
 └── README.md
@@ -294,28 +392,428 @@ doc-review-system/
 
 | 模块 | 职责 | 依赖 |
 |------|------|------|
-| **auth** | 认证授权、JWT管理、LDAP集成 | user, system-config |
+| **auth** | 认证授权、Sa-Token管理、LDAP集成 | user, role, permission |
 | **document** | 文档上传、元数据管理、版本控制 | file, user, review |
 | **review** | 评审流程管理、并行评审、状态流转 | document, user, comment |
 | **comment** | 评审意见、行内批注、意见讨论 | document, user, review |
 | **archive** | 文档归档、全文检索、批量导出 | document, file |
-| **user** | 用户管理、角色权限、用户信息同步 | auth |
+| **user** | 用户管理、用户信息同步 | auth, role |
+| **role** | 角色管理、角色权限分配 | menu, permission, data-scope |
+| **menu** | 菜单管理、菜单树构建、权限控制 | permission |
+| **permission** | 权限管理、权限标识、按钮权限 | - |
+| **data-scope** | 数据权限、部门数据隔离 | user, role |
 | **file** | 文件存储、上传下载、MinIO集成 | - |
 | **notification** | 邮件通知、站内消息 | user, review |
 | **system-config** | 系统配置、AD域配置、开关管理 | - |
 
 ---
 
-## 4. API设计概要
+## 4. RBAC权限管理设计
 
-### 4.1 API风格
+### 4.1 权限模型
+
+本系统采用**RBAC（基于角色的访问控制）模型**，包含以下核心概念：
+
+- **用户（User）**：系统使用者
+- **角色（Role）**：权限的集合，如管理员、提交者、评审者等
+- **菜单（Menu）**：系统菜单项，支持树形结构
+- **权限（Permission）**：具体的操作权限，如"文档:创建"、"文档:删除"
+- **数据权限（DataScope）**：控制用户可访问的数据范围
+
+### 4.2 权限粒度
+
+#### 4.2.1 菜单权限
+
+控制用户可见的菜单项，支持树形结构：
+
+```
+系统管理
+├── 用户管理
+│   ├── 用户列表
+│   └── 用户角色分配
+├── 角色管理
+│   ├── 角色列表
+│   └── 角色权限分配
+├── 菜单管理
+└── 权限管理
+
+文档管理
+├── 我的文档
+├── 待评审
+└── 归档检索
+```
+
+#### 4.2.2 按钮权限
+
+控制页面按钮的显示/隐藏，使用权限标识：
+
+```
+文档列表页面：
+- doc:create    → 创建文档按钮
+- doc:edit      → 编辑文档按钮
+- doc:delete    → 删除文档按钮
+- doc:submit    → 提交评审按钮
+- doc:withdraw  → 撤回评审按钮
+
+评审页面：
+- review:approve  → 通过按钮
+- review:reject   → 拒绝按钮
+- review:comment  → 评论按钮
+```
+
+#### 4.2.3 数据权限
+
+控制用户可访问的数据范围：
+
+| 数据权限类型 | 说明 | SQL条件 |
+|--------------|------|---------|
+| 全部数据 | 可访问所有数据 | 无限制 |
+| 本部门及下级 | 可访问本部门及下属部门数据 | dept_id IN (本部门及下级部门ID列表) |
+| 本部门 | 可访问本部门数据 | dept_id = 当前用户部门ID |
+| 仅本人 | 只能访问自己的数据 | user_id = 当前用户ID |
+| 自定义 | 自定义数据范围 | 自定义SQL条件 |
+
+### 4.3 数据库设计 - RBAC表
+
+#### 4.3.1 用户表 (sys_user)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| username | VARCHAR(50) | 用户名，唯一 |
+| password | VARCHAR(255) | 密码（BCrypt加密） |
+| email | VARCHAR(100) | 邮箱 |
+| phone | VARCHAR(20) | 手机号 |
+| real_name | VARCHAR(50) | 真实姓名 |
+| avatar | VARCHAR(255) | 头像URL |
+| dept_id | BIGINT | 部门ID |
+| status | TINYINT | 状态：0禁用 1启用 |
+| ldap_dn | VARCHAR(255) | LDAP Distinguished Name |
+| ldap_enabled | BOOLEAN | 是否LDAP用户 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted | TINYINT | 逻辑删除：0未删除 1已删除 |
+
+#### 4.3.2 角色表 (sys_role)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| role_name | VARCHAR(50) | 角色名称 |
+| role_code | VARCHAR(50) | 角色编码，唯一 |
+| description | VARCHAR(255) | 角色描述 |
+| data_scope | TINYINT | 数据权限范围：1全部 2自定义 3本部门及下级 4本部门 5仅本人 |
+| status | TINYINT | 状态：0禁用 1启用 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted | TINYINT | 逻辑删除 |
+
+#### 4.3.3 菜单表 (sys_menu)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| parent_id | BIGINT | 父菜单ID，0为顶级菜单 |
+| menu_name | VARCHAR(50) | 菜单名称 |
+| menu_code | VARCHAR(50) | 菜单编码 |
+| menu_type | TINYINT | 类型：1目录 2菜单 3按钮 |
+| path | VARCHAR(255) | 路由地址 |
+| component | VARCHAR(255) | 组件路径 |
+| perms | VARCHAR(100) | 权限标识 |
+| icon | VARCHAR(50) | 菜单图标 |
+| sort | INT | 排序号 |
+| visible | TINYINT | 是否可见：0隐藏 1显示 |
+| status | TINYINT | 状态：0禁用 1启用 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted | TINYINT | 逻辑删除 |
+
+#### 4.3.4 权限表 (sys_permission)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| permission_name | VARCHAR(50) | 权限名称 |
+| permission_code | VARCHAR(100) | 权限标识，唯一 |
+| resource_type | VARCHAR(20) | 资源类型：menu/button/api |
+| resource_url | VARCHAR(255) | 资源URL |
+| method | VARCHAR(10) | HTTP方法 |
+| description | VARCHAR(255) | 权限描述 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+
+#### 4.3.5 用户角色关联表 (sys_user_role)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| user_id | BIGINT | 用户ID |
+| role_id | BIGINT | 角色ID |
+| created_at | TIMESTAMP | 创建时间 |
+
+#### 4.3.6 角色菜单关联表 (sys_role_menu)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| role_id | BIGINT | 角色ID |
+| menu_id | BIGINT | 菜单ID |
+| created_at | TIMESTAMP | 创建时间 |
+
+#### 4.3.7 角色权限关联表 (sys_role_permission)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| role_id | BIGINT | 角色ID |
+| permission_id | BIGINT | 权限ID |
+| created_at | TIMESTAMP | 创建时间 |
+
+#### 4.3.8 部门表 (sys_dept)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| parent_id | BIGINT | 父部门ID |
+| dept_name | VARCHAR(50) | 部门名称 |
+| dept_code | VARCHAR(50) | 部门编码 |
+| leader | VARCHAR(50) | 部门负责人 |
+| phone | VARCHAR(20) | 联系电话 |
+| sort | INT | 排序号 |
+| status | TINYINT | 状态：0禁用 1启用 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted | TINYINT | 逻辑删除 |
+
+#### 4.3.9 角色部门关联表 (sys_role_dept) - 数据权限
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| role_id | BIGINT | 角色ID |
+| dept_id | BIGINT | 部门ID |
+| created_at | TIMESTAMP | 创建时间 |
+
+### 4.4 Sa-Token权限集成
+
+#### 4.4.1 Sa-Token配置
+
+```java
+@Configuration
+public class SaTokenConfig {
+    
+    @Bean
+    public StpLogic getStpLogicJwt() {
+        return new StpLogic("login") {
+            @Override
+            public String getTokenValue() {
+                // 从请求头获取Token
+                HttpServletRequest request = 
+                    ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                        .getRequest();
+                return request.getHeader("Authorization");
+            }
+        };
+    }
+    
+    @Bean
+    public StpInterface stpInterface() {
+        return new StpInterfaceImpl();
+    }
+}
+```
+
+#### 4.4.2 权限接口实现
+
+```java
+@Component
+public class StpInterfaceImpl implements StpInterface {
+    
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private MenuService menuService;
+    
+    @Autowired
+    private PermissionService permissionService;
+    
+    /**
+     * 返回一个账号所拥有的权限码集合
+     */
+    @Override
+    public List<String> getPermissionList(Object loginId, String loginType) {
+        Long userId = Long.parseLong(loginId.toString());
+        return permissionService.getPermissionCodesByUserId(userId);
+    }
+    
+    /**
+     * 返回一个账号所拥有的角色标识集合
+     */
+    @Override
+    public List<String> getRoleList(Object loginId, String loginType) {
+        Long userId = Long.parseLong(loginId.toString());
+        return userService.getRoleCodesByUserId(userId);
+    }
+}
+```
+
+#### 4.4.3 数据权限切面
+
+```java
+@Aspect
+@Component
+public class DataScopeAspect {
+    
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private DeptService deptService;
+    
+    @Before("@annotation(dataScope)")
+    public void doBefore(JoinPoint point, DataScope dataScope) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        User user = userService.getById(userId);
+        
+        // 获取用户角色
+        List<Role> roles = userService.getRolesByUserId(userId);
+        
+        StringBuilder sql = new StringBuilder();
+        
+        for (Role role : roles) {
+            Integer dataScopeType = role.getDataScope();
+            
+            if (dataScopeType == DataScopeType.ALL) {
+                // 全部数据权限，不加限制
+                return;
+            } else if (dataScopeType == DataScopeType.DEPT_AND_CHILD) {
+                // 本部门及下级
+                List<Long> deptIds = deptService.getChildDeptIds(user.getDeptId());
+                sql.append(" OR dept_id IN (").append(StringUtils.join(deptIds, ",")).append(")");
+            } else if (dataScopeType == DataScopeType.DEPT) {
+                // 本部门
+                sql.append(" OR dept_id = ").append(user.getDeptId());
+            } else if (dataScopeType == DataScopeType.SELF) {
+                // 仅本人
+                sql.append(" OR user_id = ").append(userId);
+            } else if (dataScopeType == DataScopeType.CUSTOM) {
+                // 自定义
+                List<Long> deptIds = deptService.getDeptIdsByRoleId(role.getId());
+                sql.append(" OR dept_id IN (").append(StringUtils.join(deptIds, ",")).append(")");
+            }
+        }
+        
+        // 将SQL条件注入到参数中
+        Object params = point.getArgs()[0];
+        if (params instanceof BaseEntity) {
+            BaseEntity entity = (BaseEntity) params;
+            entity.setDataScope("AND (" + sql.substring(4) + ")");
+        }
+    }
+}
+```
+
+### 4.5 前端权限控制
+
+#### 4.5.1 路由守卫
+
+```typescript
+// router/guards.ts
+import { useAuthStore } from '@/stores/authStore';
+import { useMenuStore } from '@/stores/menuStore';
+
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore();
+  const menuStore = useMenuStore();
+  
+  // 未登录，跳转登录页
+  if (!authStore.isLoggedIn) {
+    if (to.path === '/login') {
+      next();
+    } else {
+      next('/login');
+    }
+    return;
+  }
+  
+  // 已登录但未加载菜单
+  if (menuStore.menuList.length === 0) {
+    await menuStore.loadMenuList();
+    next({ ...to, replace: true });
+    return;
+  }
+  
+  // 检查路由权限
+  if (to.meta.permission) {
+    const hasPermission = authStore.hasPermission(to.meta.permission);
+    if (!hasPermission) {
+      next('/403');
+      return;
+    }
+  }
+  
+  next();
+});
+```
+
+#### 4.5.2 权限指令
+
+```typescript
+// directives/permission.ts
+import { useAuthStore } from '@/stores/authStore';
+
+export const permission = {
+  mounted(el: HTMLElement, binding: DirectiveBinding) {
+    const authStore = useAuthStore();
+    const permission = binding.value;
+    
+    if (!authStore.hasPermission(permission)) {
+      el.parentNode?.removeChild(el);
+    }
+  }
+};
+
+// 注册全局指令
+app.directive('permission', permission);
+```
+
+#### 4.5.3 使用示例
+
+```vue
+<template>
+  <div>
+    <!-- 按钮权限控制 -->
+    <el-button v-permission="'doc:create'" type="primary">创建文档</el-button>
+    <el-button v-permission="'doc:edit'" type="warning">编辑文档</el-button>
+    <el-button v-permission="'doc:delete'" type="danger">删除文档</el-button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useAuthStore } from '@/stores/authStore';
+
+const authStore = useAuthStore();
+
+// 代码中检查权限
+if (authStore.hasPermission('doc:create')) {
+  // 有权限，执行操作
+}
+</script>
+```
+
+---
+
+## 5. API设计概要
+
+### 5.1 API风格
 
 - **RESTful API**: 遵循REST设计原则
 - **统一响应格式**: 标准化响应结构
 - **版本控制**: URL路径版本（/api/v1/）
-- **认证方式**: JWT Bearer Token
+- **认证方式**: Sa-Token（Token放在请求头Authorization）
 
-### 4.2 统一响应格式
+### 5.2 统一响应格式
 
 ```json
 // 成功响应
@@ -341,19 +839,19 @@ doc-review-system/
   "code": 200,
   "message": "success",
   "data": {
-    "content": [...],
-    "totalElements": 100,
-    "totalPages": 10,
+    "records": [...],
+    "total": 100,
     "size": 10,
-    "number": 0
+    "current": 1,
+    "pages": 10
   },
   "timestamp": "2026-03-05T12:00:00Z"
 }
 ```
 
-### 4.3 核心API列表
+### 5.3 核心API列表
 
-#### 4.3.1 认证模块
+#### 5.3.1 认证模块
 
 | 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
@@ -361,75 +859,264 @@ doc-review-system/
 | POST | /api/v1/auth/logout | 用户登出 | 登录用户 |
 | GET | /api/v1/auth/me | 获取当前用户信息 | 登录用户 |
 | POST | /api/v1/auth/refresh | 刷新Token | 登录用户 |
-| POST | /api/v1/auth/ldap-test | 测试LDAP连接 | 管理员 |
+| POST | /api/v1/auth/ldap-test | 测试LDAP连接 | sys:config:edit |
 
-#### 4.3.2 文档模块
-
-| 方法 | 路径 | 说明 | 权限 |
-|------|------|------|------|
-| POST | /api/v1/documents | 上传文档 | 提交者、管理员 |
-| GET | /api/v1/documents | 获取文档列表 | 所有用户 |
-| GET | /api/v1/documents/{id} | 获取文档详情 | 所有用户 |
-| PUT | /api/v1/documents/{id} | 更新文档信息 | 提交者、管理员 |
-| DELETE | /api/v1/documents/{id} | 删除文档 | 提交者、管理员 |
-| GET | /api/v1/documents/{id}/file | 下载文档文件 | 所有用户 |
-| POST | /api/v1/documents/{id}/submit | 提交评审 | 提交者、管理员 |
-| POST | /api/v1/documents/{id}/withdraw | 撤回评审 | 提交者、管理员 |
-
-#### 4.3.3 评审模块
+#### 5.3.2 用户管理模块
 
 | 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
-| GET | /api/v1/reviews/pending | 获取待评审列表 | 评审者、管理员 |
-| GET | /api/v1/reviews/{id} | 获取评审详情 | 所有用户 |
-| POST | /api/v1/reviews/{id}/submit | 提交评审意见 | 评审者、管理员 |
-| GET | /api/v1/documents/{docId}/reviews | 获取文档评审记录 | 所有用户 |
-| GET | /api/v1/documents/{docId}/progress | 获取评审进度 | 所有用户 |
+| GET | /api/v1/users | 获取用户列表（分页） | sys:user:list |
+| GET | /api/v1/users/{id} | 获取用户详情 | sys:user:query |
+| POST | /api/v1/users | 创建用户 | sys:user:create |
+| PUT | /api/v1/users/{id} | 更新用户 | sys:user:edit |
+| DELETE | /api/v1/users/{id} | 删除用户 | sys:user:delete |
+| PUT | /api/v1/users/{id}/status | 更新用户状态 | sys:user:edit |
+| PUT | /api/v1/users/{id}/reset-password | 重置密码 | sys:user:resetPwd |
+| GET | /api/v1/users/{id}/roles | 获取用户角色 | sys:user:query |
+| PUT | /api/v1/users/{id}/roles | 分配用户角色 | sys:user:edit |
 
-#### 4.3.4 评论模块
-
-| 方法 | 路径 | 说明 | 权限 |
-|------|------|------|------|
-| GET | /api/v1/documents/{docId}/comments | 获取文档评论列表 | 所有用户 |
-| POST | /api/v1/documents/{docId}/comments | 添加评论 | 评审者、管理员 |
-| PUT | /api/v1/comments/{id} | 更新评论 | 评论作者 |
-| DELETE | /api/v1/comments/{id} | 删除评论 | 评论作者、管理员 |
-| POST | /api/v1/comments/{id}/reply | 回复评论 | 所有用户 |
-
-#### 4.3.5 归档模块
+#### 5.3.3 角色管理模块
 
 | 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
-| GET | /api/v1/archives | 搜索归档文档 | 所有用户 |
-| POST | /api/v1/documents/{id}/archive | 归档文档 | 管理员 |
-| DELETE | /api/v1/archives/{id} | 取消归档 | 管理员 |
-| GET | /api/v1/archives/{id}/export | 导出评审报告 | 所有用户 |
+| GET | /api/v1/roles | 获取角色列表 | sys:role:list |
+| GET | /api/v1/roles/{id} | 获取角色详情 | sys:role:query |
+| POST | /api/v1/roles | 创建角色 | sys:role:create |
+| PUT | /api/v1/roles/{id} | 更新角色 | sys:role:edit |
+| DELETE | /api/v1/roles/{id} | 删除角色 | sys:role:delete |
+| PUT | /api/v1/roles/{id}/status | 更新角色状态 | sys:role:edit |
+| GET | /api/v1/roles/{id}/menus | 获取角色菜单 | sys:role:query |
+| PUT | /api/v1/roles/{id}/menus | 分配角色菜单 | sys:role:edit |
+| GET | /api/v1/roles/{id}/permissions | 获取角色权限 | sys:role:query |
+| PUT | /api/v1/roles/{id}/permissions | 分配角色权限 | sys:role:edit |
+| GET | /api/v1/roles/{id}/data-scope | 获取角色数据权限 | sys:role:query |
+| PUT | /api/v1/roles/{id}/data-scope | 设置角色数据权限 | sys:role:edit |
 
-#### 4.3.6 用户模块
-
-| 方法 | 路径 | 说明 | 权限 |
-|------|------|------|------|
-| GET | /api/v1/users | 获取用户列表 | 管理员 |
-| GET | /api/v1/users/{id} | 获取用户详情 | 管理员 |
-| PUT | /api/v1/users/{id} | 更新用户信息 | 管理员 |
-| PUT | /api/v1/users/{id}/role | 更新用户角色 | 管理员 |
-| POST | /api/v1/users/sync-ldap | 同步LDAP用户 | 管理员 |
-
-#### 4.3.7 系统配置模块
+#### 5.3.4 菜单管理模块
 
 | 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
-| GET | /api/v1/system/config | 获取系统配置 | 管理员 |
-| PUT | /api/v1/system/config | 更新系统配置 | 管理员 |
-| GET | /api/v1/system/ldap-config | 获取LDAP配置 | 管理员 |
-| PUT | /api/v1/system/ldap-config | 更新LDAP配置 | 管理员 |
-| POST | /api/v1/system/ldap-test | 测试LDAP连接 | 管理员 |
+| GET | /api/v1/menus | 获取菜单列表 | sys:menu:list |
+| GET | /api/v1/menus/tree | 获取菜单树 | sys:menu:query |
+| GET | /api/v1/menus/{id} | 获取菜单详情 | sys:menu:query |
+| POST | /api/v1/menus | 创建菜单 | sys:menu:create |
+| PUT | /api/v1/menus/{id} | 更新菜单 | sys:menu:edit |
+| DELETE | /api/v1/menus/{id} | 删除菜单 | sys:menu:delete |
+| GET | /api/v1/menus/user | 获取当前用户菜单 | 登录用户 |
 
-### 4.4 API认证流程
+#### 5.3.5 权限管理模块
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | /api/v1/permissions | 获取权限列表 | sys:permission:list |
+| GET | /api/v1/permissions/{id} | 获取权限详情 | sys:permission:query |
+| POST | /api/v1/permissions | 创建权限 | sys:permission:create |
+| PUT | /api/v1/permissions/{id} | 更新权限 | sys:permission:edit |
+| DELETE | /api/v1/permissions/{id} | 删除权限 | sys:permission:delete |
+
+#### 5.3.6 部门管理模块
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | /api/v1/depts | 获取部门列表 | sys:dept:list |
+| GET | /api/v1/depts/tree | 获取部门树 | sys:dept:query |
+| GET | /api/v1/depts/{id} | 获取部门详情 | sys:dept:query |
+| POST | /api/v1/depts | 创建部门 | sys:dept:create |
+| PUT | /api/v1/depts/{id} | 更新部门 | sys:dept:edit |
+| DELETE | /api/v1/depts/{id} | 删除部门 | sys:dept:delete |
+
+#### 5.3.7 文档模块
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| POST | /api/v1/documents | 上传文档 | doc:create |
+| GET | /api/v1/documents | 获取文档列表（分页） | doc:list |
+| GET | /api/v1/documents/{id} | 获取文档详情 | doc:query |
+| PUT | /api/v1/documents/{id} | 更新文档信息 | doc:edit |
+| DELETE | /api/v1/documents/{id} | 删除文档 | doc:delete |
+| GET | /api/v1/documents/{id}/file | 下载文档文件 | doc:download |
+| POST | /api/v1/documents/{id}/submit | 提交评审 | doc:submit |
+| POST | /api/v1/documents/{id}/withdraw | 撤回评审 | doc:withdraw |
+
+#### 5.3.8 评审模块
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | /api/v1/reviews/pending | 获取待评审列表 | review:list |
+| GET | /api/v1/reviews/{id} | 获取评审详情 | review:query |
+| POST | /api/v1/reviews/{id}/submit | 提交评审意见 | review:submit |
+| GET | /api/v1/documents/{docId}/reviews | 获取文档评审记录 | review:query |
+| GET | /api/v1/documents/{docId}/progress | 获取评审进度 | review:query |
+
+#### 5.3.9 评论模块
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | /api/v1/documents/{docId}/comments | 获取文档评论列表 | comment:list |
+| POST | /api/v1/documents/{docId}/comments | 添加评论 | comment:create |
+| PUT | /api/v1/comments/{id} | 更新评论 | comment:edit |
+| DELETE | /api/v1/comments/{id} | 删除评论 | comment:delete |
+| POST | /api/v1/comments/{id}/reply | 回复评论 | comment:create |
+
+#### 5.3.10 归档模块
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | /api/v1/archives | 搜索归档文档 | archive:list |
+| POST | /api/v1/documents/{id}/archive | 归档文档 | archive:create |
+| DELETE | /api/v1/archives/{id} | 取消归档 | archive:delete |
+| GET | /api/v1/archives/{id}/export | 导出评审报告 | archive:export |
+
+#### 5.3.11 系统配置模块
+
+| 方法 | 路径 | 说明 | 权限 |
+|------|------|------|------|
+| GET | /api/v1/system/config | 获取系统配置 | sys:config:query |
+| PUT | /api/v1/system/config | 更新系统配置 | sys:config:edit |
+| GET | /api/v1/system/ldap-config | 获取LDAP配置 | sys:config:query |
+| PUT | /api/v1/system/ldap-config | 更新LDAP配置 | sys:config:edit |
+| POST | /api/v1/system/ldap-test | 测试LDAP连接 | sys:config:edit |
+
+---
+
+## 6. 数据库设计概要
+
+### 6.1 ER图（包含RBAC）
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              数据库ER图（RBAC部分）                              │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────┐         ┌─────────────┐         ┌─────────────┐              │
+│  │  sys_user   │         │ sys_user_role│        │  sys_role   │              │
+│  ├─────────────┤         ├─────────────┤         ├─────────────┤              │
+│  │ id (PK)     │←──────→│ user_id (FK)│←──────→│ id (PK)     │              │
+│  │ username    │         │ role_id (FK)│         │ role_name   │              │
+│  │ password    │         └─────────────┘         │ role_code   │              │
+│  │ real_name   │                                   │ data_scope  │              │
+│  │ dept_id(FK)│←──┐                               └─────────────┘              │
+│  └─────────────┘   │                                      │                    │
+│        │           │                                      │                    │
+│        │           │              ┌───────────────────────┴─────────────┐      │
+│        │           │              │                                       │      │
+│        │           │       ┌─────────────┐                     ┌─────────────┐ │
+│        │           │       │sys_role_menu│                     │sys_role_perm│ │
+│        │           │       ├─────────────┤                     ├─────────────┤ │
+│        │           │       │ role_id (FK)│                     │ role_id (FK)│ │
+│        │           │       │ menu_id (FK)│                     │ perm_id(FK) │ │
+│        │           │       └─────────────┘                     └─────────────┘ │
+│        │           │              │                                    │       │
+│        │           │              ▼                                    ▼       │
+│        │           │       ┌─────────────┐                     ┌─────────────┐ │
+│        │           │       │  sys_menu   │                     │sys_permission│
+│        │           │       ├─────────────┤                     ├─────────────┤ │
+│        │           │       │ id (PK)     │                     │ id (PK)     │ │
+│        │           │       │ parent_id   │                     │ perm_name   │ │
+│        │           │       │ menu_name   │                     │ perm_code   │ │
+│        │           │       │ menu_type   │                     │ resource_url│ │
+│        │           │       │ path        │                     │ method      │ │
+│        │           │       │ perms       │                     └─────────────┘ │
+│        │           │       └─────────────┘                                     │
+│        │           │                                                           │
+│        └──────────→│ ┌─────────────┐         ┌─────────────┐                  │
+│                    │ │  sys_dept   │←──────→│sys_role_dept│                  │
+│                    │ ├─────────────┤         ├─────────────┤                  │
+│                    │ │ id (PK)     │         │ role_id (FK)│                  │
+│                    │ │ parent_id   │         │ dept_id (FK)│                  │
+│                    │ │ dept_name   │         └─────────────┘                  │
+│                    │ │ dept_code   │                                          │
+│                    │ └─────────────┘                                          │
+│                    │                                                           │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 核心表结构（业务表）
+
+#### 6.2.1 文档表 (doc_document)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| title | VARCHAR(255) | 文档标题 |
+| description | TEXT | 文档描述 |
+| file_path | VARCHAR(500) | MinIO文件路径 |
+| file_name | VARCHAR(255) | 原始文件名 |
+| file_size | BIGINT | 文件大小（字节） |
+| file_type | VARCHAR(50) | 文件类型 |
+| review_type | VARCHAR(20) | 评审类型 |
+| status | VARCHAR(20) | 状态 |
+| submitter_id | BIGINT | 提交者ID |
+| dept_id | BIGINT | 部门ID（数据权限） |
+| deadline | TIMESTAMP | 评审截止时间 |
+| version | VARCHAR(20) | 版本号 |
+| archived | BOOLEAN | 是否已归档 |
+| archived_at | TIMESTAMP | 归档时间 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted | TINYINT | 逻辑删除 |
+
+#### 6.2.2 评审表 (doc_review)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| document_id | BIGINT | 文档ID |
+| reviewer_id | BIGINT | 评审者ID |
+| status | VARCHAR(20) | 状态 |
+| decision | VARCHAR(20) | 决定 |
+| overall_comment | TEXT | 总体评价 |
+| pros | TEXT | 优点 |
+| cons | TEXT | 问题 |
+| suggestions | TEXT | 建议 |
+| submitted_at | TIMESTAMP | 提交时间 |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted | TINYINT | 逻辑删除 |
+
+#### 6.2.3 评审者分配表 (doc_reviewer_assignment)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| document_id | BIGINT | 文档ID |
+| reviewer_id | BIGINT | 评审者ID |
+| status | VARCHAR(20) | 状态 |
+| created_at | TIMESTAMP | 创建时间 |
+
+#### 6.2.4 评论表 (doc_comment)
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| document_id | BIGINT | 文档ID |
+| review_id | BIGINT | 评审ID |
+| author_id | BIGINT | 作者ID |
+| content | TEXT | 评论内容 |
+| type | VARCHAR(20) | 类型 |
+| priority | VARCHAR(10) | 优先级 |
+| position | VARCHAR(100) | 行内批注位置 |
+| parent_id | BIGINT | 父评论ID |
+| created_at | TIMESTAMP | 创建时间 |
+| updated_at | TIMESTAMP | 更新时间 |
+| deleted | TINYINT | 逻辑删除 |
+
+---
+
+## 7. AD域集成方案
+
+### 7.1 整体设计
+
+AD域集成采用**可配置、可开关**的设计，支持两种认证模式：
+
+1. **AD域认证模式**：用户通过企业AD账号登录
+2. **本地认证模式**：用户通过本地账号登录
+
+### 7.2 认证流程
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          认证流程                                        │
+│                        认证流程                                          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  1. 用户登录                                                             │
@@ -452,488 +1139,141 @@ doc-review-system/
 │                              └────┬────┘                               │
 │                                   ▼                                    │
 │                           ┌──────────────────┐                         │
-│                           │ 生成JWT Token    │                         │
+│                           │ Sa-Token登录     │                         │
+│                           │ 生成Token        │                         │
 │                           └──────────────────┘                         │
 │                                   │                                    │
 │                                   ▼                                    │
-│     ┌──────────┐     JWT Token         ┌──────────┐                  │
-│     │  前端    │ ←───────────────────── │  后端    │                  │
-│     └──────────┘                        └──────────┘                  │
-│                                                                         │
-│  2. 请求API                                                              │
-│     ┌──────────┐  Authorization: Bearer <token>  ┌──────────┐         │
-│     │  前端    │ ──────────────────────────────→ │  后端    │         │
-│     └──────────┘                                  └──────────┘         │
-│                                                          │              │
-│                                    ┌─────────────────────┘              │
-│                                    ▼                                    │
-│                           ┌──────────────────┐                         │
-│                           │ JWT验证 + 权限   │                         │
-│                           └──────────────────┘                         │
-│                                   │                                    │
-│                                   ▼                                    │
-│     ┌──────────┐     响应数据          ┌──────────┐                  │
+│     ┌──────────┐     Token              ┌──────────┐                  │
 │     │  前端    │ ←───────────────────── │  后端    │                  │
 │     └──────────┘                        └──────────┘                  │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## 5. 数据库设计概要
-
-### 5.1 ER图
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          数据库ER图                                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────┐         ┌─────────────┐         ┌─────────────┐       │
-│  │    users    │         │  documents  │         │   reviews   │       │
-│  ├─────────────┤         ├─────────────┤         ├─────────────┤       │
-│  │ id (PK)     │←──┐     │ id (PK)     │←──┐     │ id (PK)     │       │
-│  │ username    │   │     │ title       │   │     │ document_id │──→┘   │
-│  │ password    │   │     │ description │   │     │ reviewer_id │──→┐   │
-│  │ email       │   │     │ file_path   │   │     │ status      │   │   │
-│  │ display_name│   │     │ file_size   │   │     │ decision    │   │   │
-│  │ role        │   │     │ file_type   │   │     │ comment     │   │   │
-│  │ department  │   │     │ review_type │   │     │ created_at  │   │   │
-│  │ ldap_dn     │   │     │ status      │   │     │ updated_at  │   │   │
-│  │ created_at  │   │     │ submitter_id│──→┘   │     │ submitted_at │   │   │
-│  │ updated_at  │   │     │ created_at  │       └─────────────┘   │   │
-│  └─────────────┘   │     │ updated_at  │                         │   │
-│        │           │     │ deadline    │                         │   │
-│        │           │     │ version     │                         │   │
-│        │           │     │ archived    │                         │   │
-│        │           │     │ archived_at │                         │   │
-│        │           │     └─────────────┘                         │   │
-│        │           │           │                                 │   │
-│        │           │           │                                 │   │
-│        │           │           ▼                                 │   │
-│        │           │     ┌─────────────┐                         │   │
-│        │           │     │reviewer_    │                         │   │
-│        │           │     │assignments  │                         │   │
-│        │           │     ├─────────────┤                         │   │
-│        │           │     │ id (PK)     │                         │   │
-│        │           │     │ document_id │──→│                     │   │
-│        │           └────→│ reviewer_id │   │                     │   │
-│        │                 │ status      │   │                     │   │
-│        │                 │ created_at  │   │                     │   │
-│        │                 └─────────────┘   │                     │   │
-│        │                                   │                     │   │
-│        │           ┌─────────────┐         │                     │   │
-│        │           │  comments   │         │                     │   │
-│        │           ├─────────────┤         │                     │   │
-│        │           │ id (PK)     │         │                     │   │
-│        │           │ document_id │─────────┘                     │   │
-│        │           │ review_id   │─────────────────────────────→│   │
-│        └──────────→│ author_id   │                               │   │
-│                      │ content     │                               │   │
-│                      │ type        │                               │   │
-│                      │ priority    │                               │   │
-│                      │ position    │         ┌─────────────┐     │   │
-│                      │ parent_id   │         │system_config│     │   │
-│                      │ created_at  │         ├─────────────┤     │   │
-│                      │ updated_at  │         │ id (PK)     │     │   │
-│                      └─────────────┘         │ config_key  │     │   │
-│                                              │ config_value│     │   │
-│                                              │ description │     │   │
-│                                              │ updated_at  │     │   │
-│                                              └─────────────┘     │   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 5.2 核心表结构
-
-#### 5.2.1 用户表 (users)
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键，自增 |
-| username | VARCHAR(50) | 用户名，唯一 |
-| password | VARCHAR(255) | 密码（本地用户） |
-| email | VARCHAR(100) | 邮箱 |
-| display_name | VARCHAR(100) | 显示名称 |
-| role | VARCHAR(20) | 角色：SUBMITTER/REVIEWER/ADMIN/OBSERVER |
-| department | VARCHAR(100) | 部门 |
-| ldap_dn | VARCHAR(255) | LDAP Distinguished Name |
-| ldap_enabled | BOOLEAN | 是否LDAP用户 |
-| created_at | TIMESTAMP | 创建时间 |
-| updated_at | TIMESTAMP | 更新时间 |
-
-#### 5.2.2 文档表 (documents)
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键，自增 |
-| title | VARCHAR(255) | 文档标题 |
-| description | TEXT | 文档描述 |
-| file_path | VARCHAR(500) | MinIO文件路径 |
-| file_name | VARCHAR(255) | 原始文件名 |
-| file_size | BIGINT | 文件大小（字节） |
-| file_type | VARCHAR(50) | 文件类型 |
-| review_type | VARCHAR(20) | 评审类型：TECHNICAL/DESIGN/CODE |
-| status | VARCHAR(20) | 状态：DRAFT/PENDING/REVIEWING/REVISION/APPROVED/REJECTED/ARCHIVED |
-| submitter_id | BIGINT | 提交者ID |
-| deadline | TIMESTAMP | 评审截止时间 |
-| version | VARCHAR(20) | 版本号 |
-| archived | BOOLEAN | 是否已归档 |
-| archived_at | TIMESTAMP | 归档时间 |
-| created_at | TIMESTAMP | 创建时间 |
-| updated_at | TIMESTAMP | 更新时间 |
-
-#### 5.2.3 评审表 (reviews)
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键，自增 |
-| document_id | BIGINT | 文档ID |
-| reviewer_id | BIGINT | 评审者ID |
-| status | VARCHAR(20) | 状态：PENDING/IN_PROGRESS/SUBMITTED |
-| decision | VARCHAR(20) | 决定：APPROVED/REJECTED/REVISION_REQUIRED |
-| overall_comment | TEXT | 总体评价 |
-| pros | TEXT | 优点 |
-| cons | TEXT | 问题 |
-| suggestions | TEXT | 建议 |
-| submitted_at | TIMESTAMP | 提交时间 |
-| created_at | TIMESTAMP | 创建时间 |
-| updated_at | TIMESTAMP | 更新时间 |
-
-#### 5.2.4 评审者分配表 (reviewer_assignments)
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键，自增 |
-| document_id | BIGINT | 文档ID |
-| reviewer_id | BIGINT | 评审者ID |
-| status | VARCHAR(20) | 状态：PENDING/REVIEWING/COMPLETED |
-| created_at | TIMESTAMP | 创建时间 |
-
-#### 5.2.5 评论表 (comments)
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键，自增 |
-| document_id | BIGINT | 文档ID |
-| review_id | BIGINT | 评审ID（可选） |
-| author_id | BIGINT | 作者ID |
-| content | TEXT | 评论内容 |
-| type | VARCHAR(20) | 类型：ISSUE/SUGGESTION/QUESTION |
-| priority | VARCHAR(10) | 优先级：HIGH/MEDIUM/LOW |
-| position | VARCHAR(100) | 行内批注位置 |
-| parent_id | BIGINT | 父评论ID |
-| created_at | TIMESTAMP | 创建时间 |
-| updated_at | TIMESTAMP | 更新时间 |
-
-#### 5.2.6 系统配置表 (system_config)
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键，自增 |
-| config_key | VARCHAR(100) | 配置键，唯一 |
-| config_value | TEXT | 配置值 |
-| description | VARCHAR(500) | 配置描述 |
-| created_at | TIMESTAMP | 创建时间 |
-| updated_at | TIMESTAMP | 更新时间 |
-
-**预置配置项**:
-
-| config_key | 说明 | 默认值 |
-|------------|------|--------|
-| ldap.enabled | LDAP认证开关 | false |
-| ldap.url | LDAP服务器地址 | ldap://localhost:389 |
-| ldap.base-dn | Base DN | dc=company,dc=com |
-| ldap.bind-dn | 绑定账号 | cn=admin,dc=company,dc=com |
-| ldap.bind-password | 绑定密码 | - |
-| ldap.user-attribute | 用户名属性 | sAMAccountName |
-| review.pass-condition | 通过条件 | ALL |
-
----
-
-## 6. AD域集成方案
-
-### 6.1 整体设计
-
-AD域集成采用**可配置、可开关**的设计，支持两种认证模式：
-
-1. **AD域认证模式**：用户通过企业AD账号登录
-2. **本地认证模式**：用户通过本地账号登录
-
-### 6.2 配置界面设计
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        AD域配置界面                                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  AD域认证开关                                                            │
-│  ┌────────────────────────────────────────────────────────────────┐    │
-│  │  □ 启用AD域认证                                                 │    │
-│  │  启用后，用户将使用企业AD账号登录                               │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-│  ┌────────────────────────────────────────────────────────────────┐    │
-│  │  AD域服务器配置                                                 │    │
-│  │  ─────────────────────────────────────────────────────────────  │    │
-│  │                                                                 │    │
-│  │  服务器地址: [ldap://ad.company.com                      ]      │    │
-│  │  端口:       [389                                        ]      │    │
-│  │  使用SSL:    □ (LDAPS)                                          │    │
-│  │                                                                 │    │
-│  │  Base DN:    [dc=company,dc=com                          ]      │    │
-│  │  绑定账号:   [cn=admin,dc=company,dc=com                  ]      │    │
-│  │  绑定密码:   [••••••••                                   ]      │    │
-│  │                                                                 │    │
-│  │  用户名属性: [sAMAccountName                              ]      │    │
-│  │  邮箱属性:   [mail                                        ]      │    │
-│  │  姓名属性:   [cn                                          ]      │    │
-│  │                                                                 │    │
-│  │  ─────────────────────────────────────────────────────────────  │    │
-│  │                                                                 │    │
-│  │  [测试连接]    [保存配置]    [重置]                            │    │
-│  │                                                                 │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 6.3 认证流程
-
-#### 6.3.1 AD域认证流程
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        AD域认证流程                                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  用户输入企业邮箱/用户名 + 密码                                          │
-│                    │                                                    │
-│                    ▼                                                    │
-│           ┌──────────────────┐                                         │
-│           │ 检查AD域是否开启 │                                         │
-│           └──────────────────┘                                         │
-│                    │                                                    │
-│         ┌──────────┴──────────┐                                        │
-│         │                     │                                        │
-│     开启│                     │关闭                                    │
-│         ▼                     ▼                                        │
-│  ┌─────────────┐      ┌─────────────┐                                 │
-│  │ LDAP认证    │      │ 本地认证    │                                 │
-│  └─────────────┘      └─────────────┘                                 │
-│         │                     │                                        │
-│         ▼                     │                                        │
-│  ┌─────────────┐              │                                        │
-│  │连接AD服务器 │              │                                        │
-│  └─────────────┘              │                                        │
-│         │                     │                                        │
-│         ▼                     │                                        │
-│  ┌─────────────┐              │                                        │
-│  │验证用户凭证 │              │                                        │
-│  └─────────────┘              │                                        │
-│         │                     │                                        │
-│    ┌────┴────┐               │                                        │
-│    │         │               │                                        │
-│ 成功│       失败│               │                                        │
-│    ▼         ▼               │                                        │
-│ ┌───────┐ ┌───────┐         │                                        │
-│ │获取用户│ │返回错误│         │                                        │
-│ │信息    │ │       │         │                                        │
-│ └───────┘ └───────┘         │                                        │
-│    │                        │                                        │
-│    ▼                        │                                        │
-│ ┌─────────────┐             │                                        │
-│ │同步用户信息 │             │                                        │
-│ │到本地数据库 │             │                                        │
-│ └─────────────┘             │                                        │
-│    │                        │                                        │
-│    └────────────┬───────────┘                                        │
-│                 ▼                                                    │
-│         ┌─────────────┐                                             │
-│         │生成JWT Token│                                             │
-│         └─────────────┘                                             │
-│                 │                                                    │
-│                 ▼                                                    │
-│         ┌─────────────┐                                             │
-│         │返回登录成功 │                                             │
-│         └─────────────┘                                             │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### 6.4 Spring Security配置
-
-```java
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig {
-
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Autowired
-    private LdapAuthenticationProvider ldapAuthenticationProvider;
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/v1/system/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthenticationFilter, 
-                UsernamePasswordAuthenticationFilter.class);
-        
-        return http.build();
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
-
-    // 动态启用/禁用LDAP认证
-    @Bean
-    @ConditionalOnProperty(name = "ldap.enabled", havingValue = "true")
-    public LdapAuthenticationProvider ldapAuthenticationProvider() {
-        return ldapAuthenticationProvider;
-    }
-}
-```
-
-### 6.5 LDAP配置类
-
-```java
-@Configuration
-@ConfigurationProperties(prefix = "ldap")
-@Data
-public class LdapConfig {
-    private boolean enabled = false;
-    private String url;
-    private String baseDn;
-    private String bindDn;
-    private String bindPassword;
-    private String userAttribute = "sAMAccountName";
-    private String emailAttribute = "mail";
-    private String nameAttribute = "cn";
-}
-
-@Service
-public class LdapService {
-    
-    @Autowired
-    private LdapConfig ldapConfig;
-    
-    @Autowired
-    private UserRepository userRepository;
-    
-    public boolean authenticate(String username, String password) {
-        if (!ldapConfig.isEnabled()) {
-            return false;
-        }
-        
-        try {
-            LdapContextSource contextSource = new LdapContextSource();
-            contextSource.setUrl(ldapConfig.getUrl());
-            contextSource.setBase(ldapConfig.getBaseDn());
-            contextSource.setUserDn(ldapConfig.getBindDn());
-            contextSource.setPassword(ldapConfig.getBindPassword());
-            contextSource.afterPropertiesSet();
-            
-            LdapTemplate ldapTemplate = new LdapTemplate(contextSource);
-            ldapTemplate.authenticate(
-                LdapQueryBuilder.query()
-                    .where(ldapConfig.getUserAttribute()).is(username),
-                password
-            );
-            
-            // 认证成功，同步用户信息
-            syncUserFromLdap(username);
-            return true;
-        } catch (Exception e) {
-            log.error("LDAP认证失败", e);
-            return false;
-        }
-    }
-    
-    private void syncUserFromLdap(String username) {
-        // 从AD域获取用户信息并同步到本地数据库
-        // ...
-    }
-}
-```
-
-### 6.6 动态配置实现
-
-系统配置存储在数据库中，支持运行时修改：
+### 7.3 Sa-Token + LDAP配置
 
 ```java
 @Service
-public class SystemConfigService {
+public class AuthService {
     
     @Autowired
-    private SystemConfigRepository configRepository;
+    private LdapService ldapService;
     
     @Autowired
-    private LdapConfig ldapConfig;
+    private UserService userService;
     
-    public void updateLdapConfig(LdapConfigDto dto) {
-        // 更新数据库配置
-        saveConfig("ldap.enabled", String.valueOf(dto.isEnabled()));
-        saveConfig("ldap.url", dto.getUrl());
-        saveConfig("ldap.base-dn", dto.getBaseDn());
-        saveConfig("ldap.bind-dn", dto.getBindDn());
-        saveConfig("ldap.bind-password", encryptPassword(dto.getBindPassword()));
-        saveConfig("ldap.user-attribute", dto.getUserAttribute());
+    @Autowired
+    private SystemConfigService configService;
+    
+    /**
+     * 用户登录
+     */
+    public String login(String username, String password) {
+        User user = null;
         
-        // 更新运行时配置
-        ldapConfig.setEnabled(dto.isEnabled());
-        ldapConfig.setUrl(dto.getUrl());
-        // ...
+        // 检查是否启用LDAP
+        if (configService.isLdapEnabled()) {
+            // LDAP认证
+            if (ldapService.authenticate(username, password)) {
+                // 同步用户信息
+                user = ldapService.syncUserFromLdap(username);
+            } else {
+                throw new BusinessException("用户名或密码错误");
+            }
+        } else {
+            // 本地认证
+            user = userService.getByUsername(username);
+            if (user == null || !userService.checkPassword(user, password)) {
+                throw new BusinessException("用户名或密码错误");
+            }
+        }
+        
+        // Sa-Token登录
+        StpUtil.login(user.getId());
+        
+        // 返回Token
+        return StpUtil.getTokenValue();
     }
     
-    public boolean testLdapConnection(LdapConfigDto dto) {
-        // 测试LDAP连接
-        try {
-            LdapContextSource contextSource = new LdapContextSource();
-            contextSource.setUrl(dto.getUrl());
-            contextSource.setBase(dto.getBaseDn());
-            contextSource.setUserDn(dto.getBindDn());
-            contextSource.setPassword(dto.getBindPassword());
-            contextSource.afterPropertiesSet();
-            contextSource.getReadOnlyContext();
-            return true;
-        } catch (Exception e) {
-            log.error("LDAP连接测试失败", e);
-            return false;
-        }
+    /**
+     * 用户登出
+     */
+    public void logout() {
+        StpUtil.logout();
     }
 }
 ```
 
 ---
 
-## 7. 关键技术实现
+## 8. 关键技术实现
 
-### 7.1 并行评审实现
+### 8.1 MyBatis Plus配置
+
+```java
+@Configuration
+public class MybatisPlusConfig {
+    
+    /**
+     * 分页插件
+     */
+    @Bean
+    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+        MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.POSTGRE_SQL));
+        return interceptor;
+    }
+    
+    /**
+     * 逻辑删除
+     */
+    @Bean
+    public ISqlInjector sqlInjector() {
+        return new DefaultSqlInjector();
+    }
+}
+```
+
+### 8.2 数据权限实现
+
+```java
+/**
+ * 数据权限注解
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface DataScope {
+    String deptAlias() default "d";
+    String userAlias() default "u";
+}
+
+/**
+ * 数据权限Mapper
+ */
+public interface BaseMapper<T> extends com.baomidou.mybatisplus.core.mapper.BaseMapper<T> {
+    
+    /**
+     * 根据数据权限查询
+     */
+    List<T> selectListByDataScope(@Param("ew") Wrapper<T> queryWrapper, @Param("dataScope") String dataScope);
+}
+```
+
+### 8.3 并行评审实现
 
 ```java
 @Service
 public class ReviewService {
     
     @Autowired
-    private ReviewRepository reviewRepository;
+    private ReviewMapper reviewMapper;
     
     @Autowired
-    private ReviewerAssignmentRepository assignmentRepository;
+    private ReviewerAssignmentMapper assignmentMapper;
+    
+    @Autowired
+    private DocumentMapper documentMapper;
     
     /**
      * 提交评审意见（支持并行评审）
@@ -941,9 +1281,15 @@ public class ReviewService {
     @Transactional
     public Review submitReview(Long documentId, Long reviewerId, ReviewRequest request) {
         // 1. 获取评审者分配记录
-        ReviewerAssignment assignment = assignmentRepository
-            .findByDocumentIdAndReviewerId(documentId, reviewerId)
-            .orElseThrow(() -> new BusinessException("未找到评审分配记录"));
+        ReviewerAssignment assignment = assignmentMapper.selectOne(
+            new LambdaQueryWrapper<ReviewerAssignment>()
+                .eq(ReviewerAssignment::getDocumentId, documentId)
+                .eq(ReviewerAssignment::getReviewerId, reviewerId)
+        );
+        
+        if (assignment == null) {
+            throw new BusinessException("未找到评审分配记录");
+        }
         
         // 2. 创建评审记录
         Review review = new Review();
@@ -952,11 +1298,11 @@ public class ReviewService {
         review.setDecision(request.getDecision());
         review.setOverallComment(request.getOverallComment());
         review.setSubmittedAt(LocalDateTime.now());
-        review = reviewRepository.save(review);
+        reviewMapper.insert(review);
         
         // 3. 更新分配状态
         assignment.setStatus(ReviewerStatus.COMPLETED);
-        assignmentRepository.save(assignment);
+        assignmentMapper.updateById(assignment);
         
         // 4. 更新文档状态（使用乐观锁保证一致性）
         updateDocumentStatus(documentId);
@@ -969,132 +1315,52 @@ public class ReviewService {
      */
     @Transactional
     public void updateDocumentStatus(Long documentId) {
-        Document document = documentRepository.findById(documentId)
-            .orElseThrow(() -> new BusinessException("文档不存在"));
+        Document document = documentMapper.selectById(documentId);
         
         // 获取所有评审分配
-        List<ReviewerAssignment> assignments = assignmentRepository
-            .findByDocumentId(documentId);
+        List<ReviewerAssignment> assignments = assignmentMapper.selectList(
+            new LambdaQueryWrapper<ReviewerAssignment>()
+                .eq(ReviewerAssignment::getDocumentId, documentId)
+        );
         
         long totalCount = assignments.size();
         long completedCount = assignments.stream()
             .filter(a -> a.getStatus() == ReviewerStatus.COMPLETED)
             .count();
-        long approvedCount = assignments.stream()
-            .filter(a -> a.getStatus() == ReviewerStatus.COMPLETED)
-            .filter(a -> {
-                Review r = reviewRepository.findByDocumentIdAndReviewerId(
-                    documentId, a.getReviewerId()).orElse(null);
-                return r != null && r.getDecision() == Decision.APPROVED;
-            })
-            .count();
+        long approvedCount = 0;
+        
+        for (ReviewerAssignment a : assignments) {
+            if (a.getStatus() == ReviewerStatus.COMPLETED) {
+                Review r = reviewMapper.selectOne(
+                    new LambdaQueryWrapper<Review>()
+                        .eq(Review::getDocumentId, documentId)
+                        .eq(Review::getReviewerId, a.getReviewerId())
+                );
+                if (r != null && r.getDecision() == Decision.APPROVED) {
+                    approvedCount++;
+                }
+            }
+        }
         
         // 更新状态
         if (completedCount == 0) {
-            // 首位评审者开始
             document.setStatus(DocumentStatus.REVIEWING);
         } else if (completedCount == totalCount) {
-            // 所有评审完成，判断结果
             String passCondition = configService.getConfig("review.pass-condition");
             boolean passed = evaluatePassCondition(passCondition, approvedCount, totalCount);
             document.setStatus(passed ? DocumentStatus.APPROVED : DocumentStatus.REJECTED);
         }
         
-        documentRepository.save(document);
-    }
-    
-    /**
-     * 评估通过条件
-     */
-    private boolean evaluatePassCondition(String condition, long approved, long total) {
-        switch (condition) {
-            case "ALL":
-                return approved == total;
-            case "MAJORITY":
-                return approved > total / 2;
-            case "THREE_QUARTERS":
-                return approved >= total * 0.75;
-            default:
-                return approved == total;
-        }
-    }
-}
-```
-
-### 7.2 文件上传实现
-
-```java
-@Service
-public class FileService {
-    
-    @Autowired
-    private MinioClient minioClient;
-    
-    @Value("${minio.bucket-name}")
-    private String bucketName;
-    
-    /**
-     * 上传文件到MinIO
-     */
-    public String uploadFile(MultipartFile file, String documentId) {
-        try {
-            String fileName = UUID.randomUUID().toString();
-            String objectName = String.format("documents/%s/%s", documentId, fileName);
-            
-            minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .stream(file.getInputStream(), file.getSize(), -1)
-                    .contentType(file.getContentType())
-                    .build()
-            );
-            
-            return objectName;
-        } catch (Exception e) {
-            throw new BusinessException("文件上传失败", e);
-        }
-    }
-    
-    /**
-     * 下载文件
-     */
-    public InputStream downloadFile(String objectName) {
-        try {
-            return minioClient.getObject(
-                GetObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .build()
-            );
-        } catch (Exception e) {
-            throw new BusinessException("文件下载失败", e);
-        }
-    }
-    
-    /**
-     * 删除文件
-     */
-    public void deleteFile(String objectName) {
-        try {
-            minioClient.removeObject(
-                RemoveObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .build()
-            );
-        } catch (Exception e) {
-            throw new BusinessException("文件删除失败", e);
-        }
+        documentMapper.updateById(document);
     }
 }
 ```
 
 ---
 
-## 8. 部署方案
+## 9. 部署方案
 
-### 8.1 Docker Compose配置
+### 9.1 Docker Compose配置
 
 ```yaml
 version: '3.8'
@@ -1129,6 +1395,13 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - SA_TOKEN_TOKEN_NAME=Authorization
+      - SA_TOKEN_TIMEOUT=86400
+      - SA_TOKEN_ACTIVE_TIMEOUT=-1
+      - SA_TOKEN_IS_CONCURRENT=true
+      - SA_TOKEN_IS_SHARE=true
+      - SA_TOKEN_TOKEN_STYLE=uuid
+      - SA_TOKEN_IS_LOG=false
     depends_on:
       - postgres
       - minio
@@ -1185,7 +1458,7 @@ networks:
     driver: bridge
 ```
 
-### 8.2 环境配置
+### 9.2 环境配置
 
 ```yaml
 # application-prod.yml
@@ -1196,13 +1469,17 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.docreview.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
   
   data:
     redis:
@@ -1215,9 +1492,14 @@ minio:
   secret-key: ${MINIO_SECRET_KEY}
   bucket-name: doc-review
 
-jwt:
-  secret: ${JWT_SECRET}
-  expiration: 86400000
+sa-token:
+  token-name: ${SA_TOKEN_TOKEN_NAME}
+  timeout: ${SA_TOKEN_TIMEOUT}
+  active-timeout: ${SA_TOKEN_ACTIVE_TIMEOUT}
+  is-concurrent: ${SA_TOKEN_IS_CONCURRENT}
+  is-share: ${SA_TOKEN_IS_SHARE}
+  token-style: ${SA_TOKEN_TOKEN_STYLE}
+  is-log: ${SA_TOKEN_IS_LOG}
 
 ldap:
   enabled: false
@@ -1230,121 +1512,131 @@ ldap:
 
 ---
 
-## 9. 安全设计
+## 10. 安全设计
 
-### 9.1 认证授权
+### 10.1 认证授权
 
-- **JWT Token**: 无状态认证，Token过期时间24小时
-- **RBAC**: 基于角色的访问控制（SUBMITTER/REVIEWER/ADMIN/OBSERVER）
-- **方法级安全**: 使用@PreAuthorize注解控制接口权限
+- **Sa-Token**: 轻量级权限认证框架，支持多账号登录
+- **RBAC**: 基于角色的访问控制（用户-角色-权限-菜单-数据权限）
+- **权限注解**: 使用@SaCheckPermission注解控制接口权限
 
-### 9.2 数据安全
+### 10.2 数据安全
 
 - **传输加密**: HTTPS/TLS
 - **密码加密**: BCrypt
 - **敏感配置**: 环境变量注入，不存储在代码中
 - **LDAP密码**: AES加密存储
 
-### 9.3 审计日志
+### 10.3 审计日志
 
 ```java
 @Entity
-@EntityListeners(AuditingEntityListener.class)
+@TableName("sys_audit_log")
 public class AuditLog {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
     
     private Long userId;
     private String username;
-    private String action;
-    private String resource;
-    private String details;
+    private String operation;
+    private String method;
+    private String params;
+    private String ip;
+    private Long duration;
+    private Boolean success;
+    private String errorMsg;
     
-    @CreatedDate
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }
 ```
 
 ---
 
-## 10. 性能优化
+## 11. 性能优化
 
-### 10.1 缓存策略
+### 11.1 缓存策略
 
 | 数据类型 | 缓存方式 | 过期时间 |
 |----------|----------|----------|
-| 用户信息 | Redis | 30分钟 |
+| 用户权限 | Redis | 30分钟 |
+| 角色菜单 | Redis | 30分钟 |
 | 系统配置 | Redis | 10分钟 |
 | 文档列表 | Redis | 5分钟 |
 | 评审进度 | Redis | 1分钟 |
 
-### 10.2 数据库优化
+### 11.2 数据库优化
 
-- 索引设计：文档状态、提交者、评审者
-- 分页查询：使用Pageable避免全表扫描
+- 索引设计：用户名、角色编码、菜单编码、文档状态
+- 分页查询：使用MyBatis Plus分页插件
+- 逻辑删除：避免物理删除，提高查询性能
 - 连接池：HikariCP，最大连接数20
 
-### 10.3 文件上传优化
+### 11.3 前端优化
 
-- 大文件分片上传
-- 断点续传
-- 上传进度显示
+- 路由懒加载
+- 组件按需加载
+- 图片懒加载
+- 打包优化（Vite）
 
 ---
 
-## 11. 开发计划
+## 12. 开发计划
 
-### 11.1 开发阶段划分
+### 12.1 开发阶段划分
 
 | 阶段 | 内容 | 工期 |
 |------|------|------|
-| **阶段1** | 项目骨架搭建 | 0.5天 |
-| **阶段2** | 用户认证、AD域集成 | 1天 |
-| **阶段3** | 文档上传、文件存储 | 1天 |
-| **阶段4** | 评审流程、并行评审 | 1.5天 |
-| **阶段5** | 评论、通知功能 | 1天 |
-| **阶段6** | 归档检索、系统配置 | 1天 |
-| **阶段7** | 测试、文档、优化 | 1天 |
+| **阶段1** | 项目骨架搭建、RBAC框架搭建 | 1天 |
+| **阶段2** | 用户管理、角色管理、菜单管理、权限管理 | 1天 |
+| **阶段3** | 用户认证、AD域集成 | 1天 |
+| **阶段4** | 文档上传、文件存储 | 1天 |
+| **阶段5** | 评审流程、并行评审 | 1.5天 |
+| **阶段6** | 评论、通知功能 | 1天 |
+| **阶段7** | 归档检索、系统配置 | 1天 |
+| **阶段8** | 测试、文档、优化 | 1天 |
 
-### 11.2 里程碑
+### 12.2 里程碑
 
 | 里程碑 | 内容 | 预计完成 |
 |--------|------|----------|
-| M1 | 项目骨架、基础框架 | Day 1 |
-| M2 | 认证模块完成 | Day 2 |
-| M3 | 文档模块完成 | Day 3 |
-| M4 | 评审模块完成 | Day 5 |
-| M5 | 全部功能完成 | Day 6 |
-| M6 | 测试通过、文档完成 | Day 7 |
+| M1 | 项目骨架、RBAC框架 | Day 1 |
+| M2 | 权限管理模块完成 | Day 2 |
+| M3 | 认证模块完成 | Day 3 |
+| M4 | 文档模块完成 | Day 4 |
+| M5 | 评审模块完成 | Day 6 |
+| M6 | 全部功能完成 | Day 7 |
+| M7 | 测试通过、文档完成 | Day 8 |
 
 ---
 
-## 12. 附录
+## 13. 附录
 
-### 12.1 技术栈版本详情
+### 13.1 技术栈版本详情
 
 | 组件 | 版本 | 说明 |
 |------|------|------|
 | Java | 17 LTS | 长期支持版本 |
 | Spring Boot | 3.2.x | 最新稳定版 |
-| Spring Security | 6.2.x | 随Spring Boot版本 |
-| Spring Data JPA | 3.2.x | 随Spring Boot版本 |
+| MyBatis Plus | 3.5.x | 最新稳定版 |
+| Sa-Token | 1.37.x | 最新稳定版 |
 | PostgreSQL | 15.x | LTS版本 |
 | MinIO | RELEASE.2024-x | 最新稳定版 |
 | Redis | 7.x | 最新稳定版 |
-| React | 18.x | 最新稳定版 |
+| Vue | 3.4.x | 最新稳定版 |
 | TypeScript | 5.x | 最新稳定版 |
-| Ant Design | 5.x | 最新稳定版 |
+| Element Plus | 2.5.x | 最新稳定版 |
+| Pinia | 2.x | 最新稳定版 |
 | Vite | 5.x | 最新稳定版 |
 
-### 12.2 参考文档
+### 13.2 参考文档
 
 - [Spring Boot官方文档](https://spring.io/projects/spring-boot)
-- [Spring Security LDAP](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/ldap.html)
+- [MyBatis Plus官方文档](https://baomidou.com/)
+- [Sa-Token官方文档](https://sa-token.cc/)
+- [Vue 3官方文档](https://cn.vuejs.org/)
+- [Element Plus官方文档](https://element-plus.org/zh-CN/)
 - [MinIO Java SDK](https://min.io/docs/minio/linux/developers/java/minio-java.html)
-- [Ant Design组件库](https://ant.design/components/overview-cn/)
-- [React官方文档](https://react.dev/)
 
 ---
 
@@ -1353,6 +1645,7 @@ public class AuditLog {
 | 版本 | 日期 | 作者 | 变更说明 |
 |------|------|------|----------|
 | 1.0 | 2026-03-05 | fullstack-dev | 初稿 |
+| 2.0 | 2026-03-05 | fullstack-dev | 技术栈调整（Vue+MyBatis Plus+Sa-Token）、新增完整RBAC权限管理模块 |
 
 ---
 
