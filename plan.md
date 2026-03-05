@@ -12,7 +12,7 @@
 以下产出需要 @admin 审核：
 - [x] 需求文档 ✅ 2026-03-05 17:59
 - [x] 设计方案 ✅ 2026-03-05 19:52
-- [x] 技术架构 ✅ 2026-03-05 20:13 (待审核)
+- [x] 技术架构 ✅ 2026-03-05 20:35 (v2.0: Vue+MyBatis Plus+Sa-Token+RBAC，待审核)
 
 ## 阶段规划
 
@@ -30,8 +30,8 @@
 
 ### 阶段2：技术方案 (Day 3)
 - [x] fullstack-dev: 输出技术架构设计 ✅ 2026-03-05 20:09
-- [~] ⏸️ **审核点**：@admin 确认技术方案 (需修改：Vue+MyBatis Plus+Sa-Token+RBAC)
-- [x] fullstack-dev: 推送技术方案到GitHub ✅ 2026-03-05 20:09
+- [~] ⏸️ **审核点**：@admin 确认技术方案 (v2.0已更新：Vue+MyBatis Plus+Sa-Token+RBAC)
+- [x] fullstack-dev: 推送技术方案到GitHub ✅ 2026-03-05 20:35 (commit: cc44fbf)
 
 ### 阶段3：开发 (Day 4-7)
 - [ ] fullstack-dev: 搭建项目骨架，推送到GitHub
