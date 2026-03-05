@@ -1,11 +1,12 @@
 # 文档评审系统 - 技术架构设计文档
 
-**版本**: 2.0
+**版本**: 2.1
 **日期**: 2026-03-05
 **作者**: fullstack-dev
 **状态**: 待审核
 
 **变更记录**:
+- v2.1: 新增Knife4j API文档工具
 - v2.0: 技术栈调整（Vue+MyBatis Plus+Sa-Token）、新增完整RBAC权限管理模块
 - v1.0: 初稿
 
@@ -27,6 +28,7 @@
 | **数据库** | PostgreSQL | 15.x | 开源关系型数据库 |
 | **文件存储** | MinIO | RELEASE.2024-x | 对象存储，S3兼容 |
 | **缓存** | Redis | 7.x | 会话管理、热点数据缓存 |
+| **API文档** | Knife4j | 4.3.x | 基于Swagger的增强UI文档工具 |
 
 ### 1.2 选型理由
 
@@ -65,6 +67,19 @@
 - **PostgreSQL**: 开源免费，功能强大，支持JSON类型，适合文档元数据存储
 - **MinIO**: S3兼容，私有部署，适合文档文件存储
 - **Redis**: 高性能缓存，适合会话管理和热点数据
+
+#### API文档选型
+
+**Knife4j**
+
+- **Knife4j**: 基于Swagger的增强UI文档工具
+- **优势**:
+  - 更友好的UI界面，支持中文
+  - 支持离线文档导出（Markdown、HTML、Word）
+  - 支持接口排序、搜索、缓存
+  - 支持全局参数设置
+  - 支持接口调试、参数校验
+  - 与Spring Boot无缝集成
 
 ---
 
@@ -227,10 +242,11 @@ doc-review-system/
 │   │   ├── config/                             # 配置模块
 │   │   │   ├── SaTokenConfig.java             # Sa-Token配置
 │   │   │   ├── MybatisPlusConfig.java         # MyBatis Plus配置
+│   │   │   ├── Knife4jConfig.java             # Knife4j API文档配置
 │   │   │   ├── LdapConfig.java                # LDAP配置
 │   │   │   ├── MinioConfig.java               # MinIO配置
 │   │   │   ├── RedisConfig.java               # Redis配置
-│   │   │   └── OpenApiConfig.java             # API文档配置
+│   │   │   └── WebMvcConfig.java              # Web MVC配置
 │   │   ├── controller/                         # 控制器层
 │   │   │   ├── AuthController.java            # 认证接口
 │   │   │   ├── DocumentController.java        # 文档接口
@@ -1209,7 +1225,67 @@ public class AuthService {
 
 ## 8. 关键技术实现
 
-### 8.1 MyBatis Plus配置
+### 8.1 Knife4j API文档配置
+
+```java
+@Configuration
+public class Knife4jConfig {
+    
+    @Bean
+    public Docket createRestApi() {
+        return new Docket(DocumentationType.SWAGGER_2)
+            .apiInfo(apiInfo())
+            .select()
+            .apis(RequestHandlerSelectors.basePackage("com.docreview.controller"))
+            .paths(PathSelectors.any())
+            .build();
+    }
+    
+    private ApiInfo apiInfo() {
+        return new ApiInfoBuilder()
+            .title("文档评审系统 API文档")
+            .description("文档评审系统接口文档")
+            .version("1.0.0")
+            .contact(new Contact("开发团队", "", ""))
+            .build();
+    }
+}
+```
+
+**访问方式**：
+- API文档地址：`http://localhost:8080/doc.html`
+- 离线文档导出：支持Markdown、HTML、Word格式
+
+**Maven依赖**：
+```xml
+<dependency>
+    <groupId>com.github.xiaoymin</groupId>
+    <artifactId>knife4j-spring-boot-starter</artifactId>
+    <version>4.3.0</version>
+</dependency>
+```
+
+**接口注解示例**：
+```java
+@Api(tags = "文档管理")
+@RestController
+@RequestMapping("/api/v1/documents")
+public class DocumentController {
+    
+    @ApiOperation("上传文档")
+    @ApiImplicitParams({
+        @ApiImplicitParam(name = "file", value = "文档文件", required = true, dataType = "file"),
+        @ApiImplicitParam(name = "title", value = "文档标题", required = true, dataType = "string")
+    })
+    @PostMapping
+    public Result<DocumentVO> upload(@RequestParam("file") MultipartFile file,
+                                      @RequestParam("title") String title) {
+        // ...
+    }
+}
+```
+
+### 8.2 MyBatis Plus配置
 
 ```java
 @Configuration
@@ -1235,7 +1311,7 @@ public class MybatisPlusConfig {
 }
 ```
 
-### 8.2 数据权限实现
+### 8.3 数据权限实现
 
 ```java
 /**
@@ -1260,7 +1336,7 @@ public interface BaseMapper<T> extends com.baomidou.mybatisplus.core.mapper.Base
 }
 ```
 
-### 8.3 并行评审实现
+### 8.4 并行评审实现
 
 ```java
 @Service
@@ -1623,6 +1699,7 @@ public class AuditLog {
 | PostgreSQL | 15.x | LTS版本 |
 | MinIO | RELEASE.2024-x | 最新稳定版 |
 | Redis | 7.x | 最新稳定版 |
+| Knife4j | 4.3.x | API文档增强工具 |
 | Vue | 3.4.x | 最新稳定版 |
 | TypeScript | 5.x | 最新稳定版 |
 | Element Plus | 2.5.x | 最新稳定版 |
@@ -1636,6 +1713,7 @@ public class AuditLog {
 - [Sa-Token官方文档](https://sa-token.cc/)
 - [Vue 3官方文档](https://cn.vuejs.org/)
 - [Element Plus官方文档](https://element-plus.org/zh-CN/)
+- [Knife4j官方文档](https://doc.xiaominfo.com/)
 - [MinIO Java SDK](https://min.io/docs/minio/linux/developers/java/minio-java.html)
 
 ---
@@ -1646,6 +1724,7 @@ public class AuditLog {
 |------|------|------|----------|
 | 1.0 | 2026-03-05 | fullstack-dev | 初稿 |
 | 2.0 | 2026-03-05 | fullstack-dev | 技术栈调整（Vue+MyBatis Plus+Sa-Token）、新增完整RBAC权限管理模块 |
+| 2.1 | 2026-03-05 | fullstack-dev | 新增Knife4j API文档工具 |
 
 ---
 
