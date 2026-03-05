@@ -12,7 +12,7 @@
 以下产出需要 @admin 审核：
 - [x] 需求文档 ✅ 2026-03-05 17:59
 - [x] 设计方案 ✅ 2026-03-05 19:52
-- [ ] 技术架构（fullstack-dev输出后）
+- [ ] 技术架构（已输出，待审核）
 
 ## 阶段规划
 
@@ -29,9 +29,9 @@
 - [ ] product-lead: 确认AD域配置化方案
 
 ### 阶段2：技术方案 (Day 3)
-- [ ] fullstack-dev: 输出技术架构设计
+- [x] fullstack-dev: 输出技术架构设计 ✅ 2026-03-05 20:09
 - [ ] ⏸️ **审核点**：@admin 确认技术方案
-- [ ] fullstack-dev: 推送技术方案到GitHub
+- [x] fullstack-dev: 推送技术方案到GitHub ✅ 2026-03-05 20:09
 
 ### 阶段3：开发 (Day 4-7)
 - [ ] fullstack-dev: 搭建项目骨架，推送到GitHub
