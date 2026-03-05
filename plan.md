@@ -30,7 +30,7 @@
 
 ### 阶段2：技术方案 (Day 3)
 - [x] fullstack-dev: 输出技术架构设计 ✅ 2026-03-05 20:09
-- [ ] ⏸️ **审核点**：@admin 确认技术方案
+- [~] ⏸️ **审核点**：@admin 确认技术方案 (需修改：Vue+MyBatis Plus+Sa-Token+RBAC)
 - [x] fullstack-dev: 推送技术方案到GitHub ✅ 2026-03-05 20:09
 
 ### 阶段3：开发 (Day 4-7)
