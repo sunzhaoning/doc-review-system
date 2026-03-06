@@ -2,8 +2,8 @@
 # 文档评审系统 - 后端 Dockerfile
 # ====================================
 
-# 构建阶段
-FROM maven:3.9-eclipse-temurin-17-alpine AS builder
+# 构建阶段 - 使用支持多架构的镜像
+FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /app
 
@@ -15,18 +15,21 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
-# 运行阶段
-FROM eclipse-temurin:17-jre-alpine
+# 运行阶段 - 使用支持多架构的镜像 (ARM/AMD64)
+FROM eclipse-temurin:17-jre-jammy
 
 LABEL maintainer="doc-review-system"
 LABEL version="1.0"
 LABEL description="文档评审系统 - 后端服务"
 
 # 安装必要工具
-RUN apk add --no-cache curl tzdata
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
 # 创建非 root 用户
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 WORKDIR /app
 
