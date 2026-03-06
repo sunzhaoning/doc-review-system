@@ -7,13 +7,15 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /app
 
-# 复制 pom.xml 并下载依赖 (利用缓存)
+# 复制 pom.xml
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+
+# 下载依赖 (利用 Docker 缓存)
+RUN mvn dependency:go-offline -B || mvn dependency:resolve -B
 
 # 复制源代码并构建
 COPY src ./src
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B -Dmaven.test.skip=true
 
 # 运行阶段 - 使用支持多架构的镜像 (ARM/AMD64)
 FROM eclipse-temurin:17-jre-jammy

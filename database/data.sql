@@ -109,9 +109,10 @@ SELECT setval('sys_permission_id_seq', (SELECT MAX(id) FROM sys_permission));
 -- 5. 初始化管理员账号
 -- ========================================
 
--- 密码: admin123 (BCrypt加密)
+-- 密码: admin123 (BCrypt加密，cost=10)
+-- 正确的 BCrypt hash 格式（60字符）
 INSERT INTO sys_user (id, username, password, email, phone, real_name, dept_id, status) VALUES
-(1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 'admin@example.com', '13800000000', '超级管理员', 1, 1);
+(1, 'admin', '$2a$10$EqKcp1WFKVQISheBxkVJceXI1MPqGW9i5VZJz5WR9GC2w3FwMwFm.', 'admin@example.com', '13800000000', '超级管理员', 1, 1);
 
 SELECT setval('sys_user_id_seq', (SELECT MAX(id) FROM sys_user));
 

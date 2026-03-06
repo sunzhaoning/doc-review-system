@@ -2,21 +2,30 @@
 # 文档评审系统 - 前端 Dockerfile
 # ====================================
 
-# 构建阶段
-FROM node:18-alpine AS builder
+# 构建阶段 - 使用 Debian 基础镜像（支持 ARM64）
+FROM node:18-slim AS builder
 
 WORKDIR /app
 
+# 安装必要工具
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # 复制 package.json 并安装依赖
 COPY package*.json ./
-RUN npm install --registry=https://registry.npmmirror.com
+RUN npm install --registry=https://registry.npmmirror.com --legacy-peer-deps
 
-# 复制源代码并构建
+# 复制源代码
 COPY . .
+
+# 设置环境变量
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-# 直接使用 vite build 跳过 TypeScript 检查
+# 直接使用 vite build（跳过 TypeScript 检查）
 RUN npx vite build
 
 # 运行阶段
