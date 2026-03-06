@@ -110,9 +110,9 @@ SELECT setval('sys_permission_id_seq', (SELECT MAX(id) FROM sys_permission));
 -- ========================================
 
 -- 密码: admin123 (BCrypt加密，cost=10)
--- 正确的 BCrypt hash 格式（60字符）
+-- 使用 bcryptjs 生成，将 $2b$ 改为 $2a$ 以兼容 jBCrypt/Hutool
 INSERT INTO sys_user (id, username, password, email, phone, real_name, dept_id, status) VALUES
-(1, 'admin', '$2a$10$EqKcp1WFKVQISheBxkVJceXI1MPqGW9i5VZJz5WR9GC2w3FwMwFm.', 'admin@example.com', '13800000000', '超级管理员', 1, 1);
+(1, 'admin', '$2a$10$e073rpXYclRBCL0A6rQB5.4rWSThfyBUm0g9Ngo1OTn.rBjjKOsLS', 'admin@example.com', '13800000000', '超级管理员', 1, 1);
 
 SELECT setval('sys_user_id_seq', (SELECT MAX(id) FROM sys_user));
 
