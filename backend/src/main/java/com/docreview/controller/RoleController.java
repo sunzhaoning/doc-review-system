@@ -76,7 +76,7 @@ public class RoleController {
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody RoleUpdateRequest request) {
         roleService.updateRole(id, request);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "删除角色")
@@ -84,7 +84,7 @@ public class RoleController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         roleService.deleteRole(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
     
     @Operation(summary = "更新角色状态")
@@ -93,7 +93,7 @@ public class RoleController {
     public Result<Void> updateStatus(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
         Integer status = body.get("status");
         roleService.updateStatus(id, status);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "获取角色菜单")
@@ -109,7 +109,7 @@ public class RoleController {
     public Result<Void> assignMenus(@PathVariable Long id, @RequestBody Map<String, List<Long>> body) {
         List<Long> menuIds = body.get("menuIds");
         roleService.assignMenus(id, menuIds);
-        return Result.success("分配成功");
+        return Result.success();
     }
     
     @Operation(summary = "获取角色权限")
@@ -125,6 +125,6 @@ public class RoleController {
     public Result<Void> assignPermissions(@PathVariable Long id, @RequestBody Map<String, List<Long>> body) {
         List<Long> permissionIds = body.get("permissionIds");
         roleService.assignPermissions(id, permissionIds);
-        return Result.success("分配成功");
+        return Result.success();
     }
 }

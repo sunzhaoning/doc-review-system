@@ -67,7 +67,7 @@ public class MenuController {
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody MenuUpdateRequest request) {
         menuService.updateMenu(id, request);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "删除菜单")
@@ -75,6 +75,6 @@ public class MenuController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         menuService.deleteMenu(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
 }

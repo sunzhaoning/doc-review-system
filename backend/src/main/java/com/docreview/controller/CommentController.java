@@ -50,7 +50,7 @@ public class CommentController {
     public Result<Void> updateComment(@PathVariable Long id,
                                        @RequestBody CommentCreateRequest request) {
         commentService.updateComment(id, request);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "删除评论")
@@ -58,7 +58,7 @@ public class CommentController {
     @DeleteMapping("/comments/{id}")
     public Result<Void> deleteComment(@PathVariable Long id) {
         commentService.deleteComment(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
     
     @Operation(summary = "回复评论")

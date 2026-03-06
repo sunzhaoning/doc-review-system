@@ -74,7 +74,7 @@ public class ReviewController {
     @PostMapping("/start/{documentId}")
     public Result<Void> startReview(@PathVariable Long documentId) {
         reviewService.startReview(documentId);
-        return Result.success("开始评审");
+        return Result.success();
     }
     
     @Operation(summary = "提交评审意见")
@@ -83,6 +83,6 @@ public class ReviewController {
     public Result<Void> submitReview(@PathVariable Long documentId, 
                                       @Valid @RequestBody ReviewSubmitRequest request) {
         reviewService.submitReview(documentId, request);
-        return Result.success("提交成功");
+        return Result.success();
     }
 }

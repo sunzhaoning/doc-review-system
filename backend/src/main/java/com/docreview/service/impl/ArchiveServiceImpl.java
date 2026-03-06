@@ -193,6 +193,15 @@ public class ArchiveServiceImpl extends ServiceImpl<DocumentMapper, Document> im
         return report.toString().getBytes(StandardCharsets.UTF_8);
     }
     
+    @Override
+    public DocumentResponse getDetail(Long id) {
+        Document document = getById(id);
+        if (document == null || document.getDeleted() == 1) {
+            throw new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND);
+        }
+        return convertToResponse(document);
+    }
+    
     /**
      * 转换为响应对象
      */

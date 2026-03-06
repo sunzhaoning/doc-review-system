@@ -80,7 +80,7 @@ public class DocumentController {
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody DocumentUploadRequest request) {
         documentService.updateDocument(id, request);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "删除文档")
@@ -88,7 +88,7 @@ public class DocumentController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         documentService.deleteDocument(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
     
     @Operation(summary = "提交评审")
@@ -97,7 +97,7 @@ public class DocumentController {
     public Result<Void> submitReview(@PathVariable Long id, @RequestBody Map<String, List<Long>> body) {
         List<Long> reviewerIds = body.get("reviewerIds");
         documentService.submitReview(id, reviewerIds);
-        return Result.success("提交成功");
+        return Result.success();
     }
     
     @Operation(summary = "撤回评审")
@@ -105,7 +105,7 @@ public class DocumentController {
     @PostMapping("/{id}/withdraw")
     public Result<Void> withdrawReview(@PathVariable Long id) {
         documentService.withdrawReview(id);
-        return Result.success("撤回成功");
+        return Result.success();
     }
     
     @Operation(summary = "获取文档预览URL")

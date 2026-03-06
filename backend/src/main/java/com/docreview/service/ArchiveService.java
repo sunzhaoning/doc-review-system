@@ -39,4 +39,9 @@ public interface ArchiveService extends IService<Document> {
      * 导出评审报告
      */
     byte[] exportReviewReport(Long id);
+    
+    /**
+     * 获取文档详情
+     */
+    DocumentResponse getDetail(Long id);
 }

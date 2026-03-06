@@ -45,7 +45,7 @@ public class SystemConfigController {
     public Result<Void> setConfig(@PathVariable String key, @RequestBody Map<String, String> body) {
         String value = body.get("value");
         systemConfigService.setConfig(key, value);
-        return Result.success("设置成功");
+        return Result.success();
     }
     
     @Operation(summary = "获取LDAP配置")
@@ -60,7 +60,7 @@ public class SystemConfigController {
     @PutMapping("/ldap-config")
     public Result<Void> updateLdapConfig(@RequestBody LdapConfigRequest request) {
         systemConfigService.updateLdapConfig(request);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "测试LDAP连接")

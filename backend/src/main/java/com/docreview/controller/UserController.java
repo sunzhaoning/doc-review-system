@@ -73,7 +73,7 @@ public class UserController {
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
         userService.updateUser(id, request);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "删除用户")
@@ -81,7 +81,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         userService.deleteUser(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
     
     @Operation(summary = "更新用户状态")
@@ -90,7 +90,7 @@ public class UserController {
     public Result<Void> updateStatus(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
         Integer status = body.get("status");
         userService.updateStatus(id, status);
-        return Result.success("更新成功");
+        return Result.success();
     }
     
     @Operation(summary = "重置密码")
@@ -99,7 +99,7 @@ public class UserController {
     public Result<Void> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String newPassword = body.get("password");
         userService.resetPassword(id, newPassword);
-        return Result.success("重置成功");
+        return Result.success();
     }
     
     @Operation(summary = "获取用户角色")
@@ -115,6 +115,6 @@ public class UserController {
     public Result<Void> assignRoles(@PathVariable Long id, @RequestBody Map<String, List<Long>> body) {
         List<Long> roleIds = body.get("roleIds");
         userService.assignRoles(id, roleIds);
-        return Result.success("分配成功");
+        return Result.success();
     }
 }

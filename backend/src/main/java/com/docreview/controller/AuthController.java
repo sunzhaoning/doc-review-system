@@ -97,7 +97,7 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout() {
         StpUtil.logout();
-        return Result.success("登出成功");
+        return Result.success();
     }
     
     @Operation(summary = "获取当前用户信息")

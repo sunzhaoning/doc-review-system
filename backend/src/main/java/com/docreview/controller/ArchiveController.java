@@ -50,7 +50,7 @@ public class ArchiveController {
     @PostMapping("/documents/{id}")
     public Result<Void> archive(@PathVariable Long id) {
         archiveService.archiveDocument(id);
-        return Result.success("归档成功");
+        return Result.success();
     }
     
     @Operation(summary = "取消归档")
@@ -58,7 +58,7 @@ public class ArchiveController {
     @DeleteMapping("/{id}")
     public Result<Void> unarchive(@PathVariable Long id) {
         archiveService.unarchiveDocument(id);
-        return Result.success("取消归档成功");
+        return Result.success();
     }
     
     @Operation(summary = "批量归档")
@@ -67,7 +67,7 @@ public class ArchiveController {
     public Result<Void> batchArchive(@RequestBody Map<String, List<Long>> body) {
         List<Long> ids = body.get("ids");
         archiveService.batchArchive(ids);
-        return Result.success("批量归档成功");
+        return Result.success();
     }
     
     @Operation(summary = "导出评审报告")
