@@ -1,81 +1,81 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 数据库
+  # ==================== PostgreSQL 数据库 ====================
   postgres:
     image: postgres:15-alpine
     container_name: doc-review-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: docreview
-      POSTGRES_USER: docreview
-      POSTGRES_PASSWORD: docreview123
+      POSTGRES_DB: ${POSTGRES_DB:-docreview}
+      POSTGRES_USER: ${POSTGRES_USER:-docreview}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      TZ: ${TZ:-Asia/Shanghai}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./database/data.sql:/docker-entrypoint-initdb.d/02-data.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
     ports:
-      - "5432:5432"
-    networks:
-      - doc-review-network
+      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U docreview"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-docreview} -d ${POSTGRES_DB:-docreview}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    networks:
+      - doc-review-network
 
-  # Redis 缓存
+  # ==================== Redis 缓存 ====================
   redis:
     image: redis:7-alpine
     container_name: doc-review-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
     volumes:
-      - redis-data:/data
-    networks:
-      - doc-review-network
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - doc-review-network
 
-  # MinIO 对象存储
+  # ==================== MinIO 对象存储 ====================
   minio:
     image: minio/minio:latest
     container_name: doc-review-minio
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      TZ: ${TZ:-Asia/Shanghai}
     volumes:
-      - minio-data:/data
+      - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    networks:
-      - doc-review-network
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
+    networks:
+      - doc-review-network
 
-  # 后端服务
+  # ==================== 后端服务 ====================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: doc-review-backend
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/docreview
-      - SPRING_DATASOURCE_USERNAME=docreview
-      - SPRING_DATASOURCE_PASSWORD=docreview123
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,29 +83,78 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    environment:
+      # 数据库配置
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-docreview}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-docreview}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # Redis 配置
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # MinIO 配置
+      MINIO_ENDPOINT: http://${MINIO_HOST:-minio}:${MINIO_PORT:-9000}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-doc-review}
+      # Sa-Token 配置
+      SA_TOKEN_TOKEN_NAME: ${SA_TOKEN_TOKEN_NAME:-satoken}
+      SA_TOKEN_TIMEOUT: ${SA_TOKEN_TIMEOUT:-86400}
+      # AD 域配置
+      AD_ENABLED: ${AD_ENABLED:-false}
+      AD_URL: ${AD_URL:-}
+      AD_BASE_DN: ${AD_BASE_DN:-}
+      AD_USERNAME: ${AD_USERNAME:-}
+      AD_PASSWORD: ${AD_PASSWORD:-}
+      # 其他配置
+      SPRING_PROFILES_ACTIVE: ${BACKEND_PROFILE:-prod}
+      TZ: ${TZ:-Asia/Shanghai}
+      JAVA_OPTS: -Xms512m -Xmx1024m -XX:+UseG1GC
+    volumes:
+      - backend_logs:/var/log/doc-review
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - doc-review-network
 
-  # 前端服务
+  # ==================== 前端服务 ====================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
     container_name: doc-review-frontend
+    restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
     networks:
       - doc-review-network
 
-volumes:
-  postgres-data:
-  redis-data:
-  minio-data:
-
+# ==================== 网络配置 ====================
 networks:
   doc-review-network:
     driver: bridge
+    name: doc-review-network
+
+# ==================== 数据卷配置 ====================
+volumes:
+  postgres_data:
+    name: doc-review-postgres-data
+  redis_data:
+    name: doc-review-redis-data
+  minio_data:
+    name: doc-review-minio-data
+  backend_logs:
+    name: doc-review-backend-logs

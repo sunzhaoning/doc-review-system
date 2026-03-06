@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.docreview.mapper.UserMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.docreview.entity.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="email" property="email"/>
+        <result column="phone" property="phone"/>
+        <result column="real_name" property="realName"/>
+        <result column="avatar" property="avatar"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="status" property="status"/>
+        <result column="ldap_dn" property="ldapDn"/>
+        <result column="ldap_enabled" property="ldapEnabled"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 根据用户ID查询角色编码列表 -->
+    <select id="selectRoleCodesByUserId" resultType="java.lang.String">
+        SELECT r.role_code
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.deleted = 0
+          AND r.status = 1
+    </select>
+
+    <!-- 根据用户ID查询权限编码列表 -->
+    <select id="selectPermCodesByUserId" resultType="java.lang.String">
+        SELECT DISTINCT p.perm_code
+        FROM sys_permission p
+        INNER JOIN sys_role_permission rp ON p.id = rp.permission_id
+        INNER JOIN sys_user_role ur ON rp.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND p.deleted = 0
+    </select>
+
+    <!-- 根据用户ID查询角色ID列表 -->
+    <select id="selectRoleIdsByUserId" resultType="java.lang.Long">
+        SELECT role_id
+        FROM sys_user_role
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 分页查询用户（带部门信息） -->
+    <select id="selectPageWithDept" resultMap="BaseResultMap">
+        SELECT u.*
+        FROM sys_user u
+        WHERE u.deleted = 0
+        <if test="username != null and username != ''">
+            AND u.username LIKE CONCAT('%', #{username}, '%')
+        </if>
+        <if test="realName != null and realName != ''">
+            AND u.real_name LIKE CONCAT('%', #{realName}, '%')
+        </if>
+        <if test="status != null">
+            AND u.status = #{status}
+        </if>
+        ORDER BY u.created_at DESC
+    </select>
+
+</mapper>
