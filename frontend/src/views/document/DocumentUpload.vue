@@ -57,7 +57,7 @@
 
         <el-form-item label="评审人" prop="reviewerIds">
           <el-select v-model="uploadForm.reviewerIds" multiple placeholder="请选择评审人" 
-                     filterable remote :remote-method="searchUsers">
+                     filterable :loading="userLoading" @focus="searchUsers('')">
             <el-option
               v-for="user in userList"
               :key="user.id"
@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules, type UploadFile, type UploadInstance, type UploadProps } from 'element-plus'
 import { request } from '@/api/request'
@@ -108,6 +108,7 @@ const uploadRef = ref<UploadInstance>()
 const uploading = ref(false)
 const fileList = ref<UploadFile[]>([])
 const userList = ref<User[]>([])
+const userLoading = ref(false)
 
 const uploadForm = reactive({
   title: '',
@@ -180,16 +181,17 @@ const disabledDate = (date: Date) => {
 }
 
 const searchUsers = async (query: string) => {
-  if (!query) {
-    userList.value = []
-    return
-  }
-  
+  userLoading.value = true
   try {
-    const res = await request.get('/users/search', { keyword: query })
+    const res = await request.get('/users/search', { 
+      keyword: query || '',
+      limit: 20 
+    })
     userList.value = res.data || []
   } catch (error) {
     console.error('Failed to search users:', error)
+  } finally {
+    userLoading.value = false
   }
 }
 
@@ -249,6 +251,11 @@ const handleReset = () => {
 const handleCancel = () => {
   router.back()
 }
+
+// 加载用户列表
+onMounted(() => {
+  searchUsers('')
+})
 </script>
 
 <style scoped>
