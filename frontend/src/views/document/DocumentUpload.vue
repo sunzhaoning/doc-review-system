@@ -38,10 +38,9 @@
             drag
             :auto-upload="false"
             :limit="1"
+            v-model:file-list="fileList"
             :on-change="handleFileChange"
-            :on-remove="handleFileRemove"
-            :before-upload="beforeUpload"
-            :file-list="fileList"
+            :on-exceed="handleExceed"
             accept=".pdf,.doc,.docx,.md,.txt"
           >
             <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
@@ -93,7 +92,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, type FormInstance, type FormRules, type UploadFile, type UploadInstance } from 'element-plus'
+import { ElMessage, type FormInstance, type FormRules, type UploadFile, type UploadInstance, type UploadProps } from 'element-plus'
 import { request } from '@/api/request'
 
 const router = useRouter()
@@ -128,38 +127,52 @@ const uploadRules: FormRules = {
   ]
 }
 
-const handleFileChange = (file: UploadFile) => {
-  fileList.value = [file]
+const handleFileChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
+  // 只保留最新的文件
+  fileList.value = uploadFiles.slice(-1)
+  
+  // 验证文件
+  if (uploadFile.raw) {
+    const allowedTypes = ['application/pdf', 'application/msword', 
+                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          'text/markdown', 'text/plain']
+    const isAllowed = allowedTypes.includes(uploadFile.raw.type) || 
+                      /\.(pdf|doc|docx|md|txt)$/i.test(uploadFile.name)
+    
+    if (!isAllowed) {
+      ElMessage.error('只支持 PDF、DOC、DOCX、MD、TXT 格式的文件')
+      fileList.value = []
+      return
+    }
+    
+    const isLt50M = (uploadFile.raw.size / 1024 / 1024) < 50
+    if (!isLt50M) {
+      ElMessage.error('文件大小不能超过 50MB')
+      fileList.value = []
+      return
+    }
+  }
+  
   // 自动填充标题
-  if (!uploadForm.title && file.name) {
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
+  if (!uploadForm.title && uploadFile.name) {
+    const nameWithoutExt = uploadFile.name.replace(/\.[^/.]+$/, '')
     uploadForm.title = nameWithoutExt
   }
 }
 
-const handleFileRemove = () => {
+const handleExceed: UploadProps['onExceed'] = (files) => {
+  ElMessage.warning('最多只能上传1个文件')
+  // 替换为新文件
   fileList.value = []
-}
-
-const beforeUpload = (file: File) => {
-  const allowedTypes = ['application/pdf', 'application/msword', 
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'text/markdown', 'text/plain']
-  const isAllowed = allowedTypes.includes(file.type) || 
-                    /\.(pdf|doc|docx|md|txt)$/i.test(file.name)
-  
-  if (!isAllowed) {
-    ElMessage.error('只支持 PDF、DOC、DOCX、MD、TXT 格式的文件')
-    return false
+  if (files.length > 0) {
+    const file = files[0]
+    fileList.value = [{
+      name: file.name,
+      size: file.size,
+      raw: file,
+      status: 'ready'
+    } as UploadFile]
   }
-  
-  const isLt50M = file.size / 1024 / 1024 < 50
-  if (!isLt50M) {
-    ElMessage.error('文件大小不能超过 50MB')
-    return false
-  }
-  
-  return true
 }
 
 const disabledDate = (date: Date) => {
@@ -191,11 +204,17 @@ const handleSubmit = async () => {
       return
     }
     
+    const file = fileList.value[0]
+    if (!file.raw) {
+      ElMessage.error('文件数据异常，请重新选择')
+      return
+    }
+    
     uploading.value = true
     
     try {
       const formData = new FormData()
-      formData.append('file', fileList.value[0].raw as File)
+      formData.append('file', file.raw)
       formData.append('title', uploadForm.title)
       formData.append('reviewType', uploadForm.reviewType)
       if (uploadForm.description) {
