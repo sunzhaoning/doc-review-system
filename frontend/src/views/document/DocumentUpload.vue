@@ -31,7 +31,7 @@
                     placeholder="请输入文档描述" maxlength="500" show-word-limit />
         </el-form-item>
 
-        <el-form-item label="文档文件" prop="file" required>
+        <el-form-item label="文档文件">
           <el-upload
             ref="uploadRef"
             class="upload-area"
