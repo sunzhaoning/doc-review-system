@@ -18,26 +18,11 @@
           <el-input v-model="uploadForm.title" placeholder="请输入文档标题" maxlength="200" show-word-limit />
         </el-form-item>
 
-        <el-form-item label="文档类型" prop="type">
-          <el-select v-model="uploadForm.type" placeholder="请选择文档类型">
-            <el-option label="技术文档" value="technical" />
-            <el-option label="需求文档" value="requirement" />
-            <el-option label="设计文档" value="design" />
-            <el-option label="测试文档" value="test" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="项目名称" prop="project">
-          <el-input v-model="uploadForm.project" placeholder="请输入项目名称" />
-        </el-form-item>
-
-        <el-form-item label="标签" prop="tags">
-          <el-select v-model="uploadForm.tags" multiple placeholder="请选择标签" allow-create filterable>
-            <el-option label="重要" value="important" />
-            <el-option label="紧急" value="urgent" />
-            <el-option label="内部" value="internal" />
-            <el-option label="公开" value="public" />
+        <el-form-item label="评审类型" prop="reviewType">
+          <el-select v-model="uploadForm.reviewType" placeholder="请选择评审类型">
+            <el-option label="内部评审" value="internal" />
+            <el-option label="外部评审" value="external" />
+            <el-option label="交叉评审" value="cross" />
           </el-select>
         </el-form-item>
 
@@ -71,7 +56,7 @@
           </el-upload>
         </el-form-item>
 
-        <el-form-item label="评审人" prop="reviewers">
+        <el-form-item label="评审人" prop="reviewerIds">
           <el-select v-model="uploadForm.reviewerIds" multiple placeholder="请选择评审人" 
                      filterable remote :remote-method="searchUsers">
             <el-option
@@ -83,18 +68,13 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="截止日期" prop="dueDate">
+        <el-form-item label="截止日期" prop="deadline">
           <el-date-picker
-            v-model="uploadForm.dueDate"
+            v-model="uploadForm.deadline"
             type="datetime"
             placeholder="选择截止日期"
             :disabled-date="disabledDate"
           />
-        </el-form-item>
-
-        <el-form-item label="加急" prop="urgent">
-          <el-switch v-model="uploadForm.urgent" />
-          <span class="form-tip">加急文档会优先展示给评审人</span>
         </el-form-item>
 
         <el-form-item>
@@ -132,13 +112,10 @@ const userList = ref<User[]>([])
 
 const uploadForm = reactive({
   title: '',
-  type: '',
-  project: '',
-  tags: [] as string[],
+  reviewType: '',
   description: '',
   reviewerIds: [] as number[],
-  dueDate: '',
-  urgent: false
+  deadline: ''
 })
 
 const uploadRules: FormRules = {
@@ -146,11 +123,8 @@ const uploadRules: FormRules = {
     { required: true, message: '请输入文档标题', trigger: 'blur' },
     { min: 2, max: 200, message: '标题长度在 2 到 200 个字符', trigger: 'blur' }
   ],
-  type: [
-    { required: true, message: '请选择文档类型', trigger: 'change' }
-  ],
-  project: [
-    { required: true, message: '请输入项目名称', trigger: 'blur' }
+  reviewType: [
+    { required: true, message: '请选择评审类型', trigger: 'change' }
   ]
 }
 
@@ -223,13 +197,16 @@ const handleSubmit = async () => {
       const formData = new FormData()
       formData.append('file', fileList.value[0].raw as File)
       formData.append('title', uploadForm.title)
-      formData.append('type', uploadForm.type)
-      formData.append('project', uploadForm.project)
-      formData.append('tags', JSON.stringify(uploadForm.tags))
-      formData.append('description', uploadForm.description)
-      formData.append('reviewerIds', JSON.stringify(uploadForm.reviewerIds))
-      formData.append('dueDate', uploadForm.dueDate)
-      formData.append('urgent', String(uploadForm.urgent))
+      formData.append('reviewType', uploadForm.reviewType)
+      if (uploadForm.description) {
+        formData.append('description', uploadForm.description)
+      }
+      if (uploadForm.reviewerIds.length > 0) {
+        formData.append('reviewerIds', JSON.stringify(uploadForm.reviewerIds))
+      }
+      if (uploadForm.deadline) {
+        formData.append('deadline', uploadForm.deadline)
+      }
       
       await request.post('/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }

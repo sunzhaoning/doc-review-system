@@ -7,6 +7,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import App from './App.vue'
 import router from './router'
+import { setupRouterGuard } from './router/guard'
 
 import './assets/main.css'
 
@@ -20,5 +21,8 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus, { locale: zhCn })
+
+// 设置路由守卫
+setupRouterGuard(router)
 
 app.mount('#app')
