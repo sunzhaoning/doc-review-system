@@ -4,19 +4,14 @@
       <!-- 搜索表单 -->
       <el-form :model="searchForm" inline class="search-form">
         <el-form-item label="关键词">
-          <el-input v-model="searchForm.keyword" placeholder="标题/描述/作者" clearable style="width: 200px" />
+          <el-input v-model="searchForm.keyword" placeholder="标题/描述" clearable style="width: 200px" />
         </el-form-item>
-        <el-form-item label="文档类型">
-          <el-select v-model="searchForm.type" placeholder="全部类型" clearable>
-            <el-option label="技术文档" value="technical" />
-            <el-option label="需求文档" value="requirement" />
-            <el-option label="设计文档" value="design" />
-            <el-option label="测试文档" value="test" />
-            <el-option label="其他" value="other" />
+        <el-form-item label="评审类型">
+          <el-select v-model="searchForm.reviewType" placeholder="全部类型" clearable>
+            <el-option label="内部评审" value="internal" />
+            <el-option label="外部评审" value="external" />
+            <el-option label="交叉评审" value="cross" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="项目">
-          <el-input v-model="searchForm.project" placeholder="项目名称" clearable />
         </el-form-item>
         <el-form-item label="归档时间">
           <el-date-picker
@@ -26,14 +21,6 @@
             start-placeholder="开始日期"
             end-placeholder="结束日期"
           />
-        </el-form-item>
-        <el-form-item label="标签">
-          <el-select v-model="searchForm.tags" multiple placeholder="选择标签" clearable collapse-tags>
-            <el-option label="重要" value="important" />
-            <el-option label="紧急" value="urgent" />
-            <el-option label="内部" value="internal" />
-            <el-option label="公开" value="public" />
-          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
@@ -46,13 +33,9 @@
 
       <!-- 操作按钮 -->
       <div class="action-bar">
-        <el-button @click="handleBatchExport" :disabled="!selectedRows.length">
-          <el-icon><Download /></el-icon>
-          批量导出
-        </el-button>
-        <el-button @click="handleBatchDownload" :disabled="!selectedRows.length">
-          <el-icon><Download /></el-icon>
-          批量下载
+        <el-button @click="handleBatchArchive" :disabled="!selectedRows.length">
+          <el-icon><FolderOpened /></el-icon>
+          批量归档
         </el-button>
       </div>
 
@@ -66,25 +49,26 @@
         <el-table-column type="selection" width="55" />
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="title" label="文档标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="type" label="类型" width="100">
+        <el-table-column prop="fileType" label="类型" width="100">
           <template #default="{ row }">
-            <el-tag size="small">{{ getTypeText(row.type) }}</el-tag>
+            <el-tag size="small">{{ row.fileType || '未知' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="project" label="项目" width="120" />
-        <el-table-column prop="authorName" label="作者" width="100" />
-        <el-table-column prop="version" label="版本" width="80" />
-        <el-table-column prop="archivedAt" label="归档时间" width="180" />
-        <el-table-column prop="tags" label="标签" width="150">
+        <el-table-column prop="reviewType" label="评审类型" width="100">
           <template #default="{ row }">
-            <el-tag v-for="tag in row.tags" :key="tag" size="small" class="tag-item">
-              {{ tag }}
-            </el-tag>
+            <el-tag size="small" type="info">{{ getReviewTypeText(row.reviewType) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="submitterName" label="提交人" width="100" />
+        <el-table-column prop="version" label="版本" width="80" />
+        <el-table-column prop="createdAt" label="创建时间" width="180">
+          <template #default="{ row }">
+            {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="viewDocument(row)">查看</el-button>
+            <el-button type="primary" link @click="viewDocument(row)">预览</el-button>
             <el-button type="primary" link @click="downloadDocument(row)">下载</el-button>
             <el-button type="primary" link @click="exportReport(row)">导出报告</el-button>
           </template>
@@ -114,12 +98,14 @@ import { request } from '@/api/request'
 interface Archive {
   id: number
   title: string
-  type: string
-  project: string
-  authorName: string
+  fileName: string
+  fileType: string
+  reviewType: string
+  submitterName: string
   version: string
-  archivedAt: string
-  tags: string[]
+  archived: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 const loading = ref(false)
@@ -128,10 +114,8 @@ const selectedRows = ref<Archive[]>([])
 
 const searchForm = reactive({
   keyword: '',
-  type: '',
-  project: '',
-  dateRange: [] as string[],
-  tags: [] as string[]
+  reviewType: '',
+  dateRange: [] as string[]
 })
 
 const pagination = reactive({
@@ -140,15 +124,18 @@ const pagination = reactive({
   total: 0
 })
 
-const getTypeText = (type: string) => {
+const getReviewTypeText = (type: string) => {
   const texts: Record<string, string> = {
-    technical: '技术文档',
-    requirement: '需求文档',
-    design: '设计文档',
-    test: '测试文档',
-    other: '其他'
+    internal: '内部评审',
+    external: '外部评审',
+    cross: '交叉评审'
   }
-  return texts[type] || type
+  return texts[type] || type || '-'
+}
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  return dateStr.replace('T', ' ').substring(0, 19)
 }
 
 const handleSearch = () => {
@@ -158,10 +145,8 @@ const handleSearch = () => {
 
 const handleReset = () => {
   searchForm.keyword = ''
-  searchForm.type = ''
-  searchForm.project = ''
+  searchForm.reviewType = ''
   searchForm.dateRange = []
-  searchForm.tags = []
   handleSearch()
 }
 
@@ -170,36 +155,64 @@ const handleSelectionChange = (rows: Archive[]) => {
 }
 
 const viewDocument = (doc: Archive) => {
-  window.open(`/api/v1/documents/${doc.id}`, '_blank')
+  // 获取预览URL
+  request.get(`/documents/${doc.id}/preview`).then((res: any) => {
+    if (res.data) {
+      window.open(res.data, '_blank')
+    }
+  }).catch(() => {
+    ElMessage.error('获取预览链接失败')
+  })
 }
 
-const downloadDocument = (doc: Archive) => {
-  window.open(`/api/v1/documents/${doc.id}/download`, '_blank')
-}
-
-const exportReport = (doc: Archive) => {
-  window.open(`/api/v1/documents/${doc.id}/report`, '_blank')
-}
-
-const handleBatchExport = async () => {
-  if (!selectedRows.value.length) return
-  
+const downloadDocument = async (doc: Archive) => {
   try {
-    const ids = selectedRows.value.map(row => row.id)
-    window.open(`/api/v1/archive/export?ids=${ids.join(',')}`, '_blank')
+    const res = await request.get(`/documents/${doc.id}/download`, {
+      responseType: 'blob'
+    })
+    const blob = new Blob([res])
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = doc.title || 'document'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    ElMessage.error('下载失败')
+  }
+}
+
+const exportReport = async (doc: Archive) => {
+  try {
+    const res = await request.get(`/archives/${doc.id}/export`, {
+      responseType: 'blob'
+    })
+    const blob = new Blob([res], { type: 'text/markdown' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${doc.title}_评审报告.md`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   } catch (error) {
     ElMessage.error('导出失败')
   }
 }
 
-const handleBatchDownload = async () => {
+const handleBatchArchive = async () => {
   if (!selectedRows.value.length) return
   
   try {
     const ids = selectedRows.value.map(row => row.id)
-    window.open(`/api/v1/archive/download?ids=${ids.join(',')}`, '_blank')
+    await request.post('/archives/batch', { ids })
+    ElMessage.success('批量归档成功')
+    fetchArchives()
   } catch (error) {
-    ElMessage.error('下载失败')
+    ElMessage.error('批量归档失败')
   }
 }
 
@@ -211,7 +224,7 @@ const fetchArchives = async () => {
       size: pagination.pageSize
     }
     if (searchForm.keyword) params.keyword = searchForm.keyword
-    if (searchForm.type) params.reviewType = searchForm.type
+    if (searchForm.reviewType) params.reviewType = searchForm.reviewType
     if (searchForm.dateRange && searchForm.dateRange.length === 2) {
       params.startDate = searchForm.dateRange[0]
       params.endDate = searchForm.dateRange[1]
@@ -248,10 +261,5 @@ onMounted(() => {
 .pagination {
   margin-top: 16px;
   justify-content: flex-end;
-}
-
-.tag-item {
-  margin-right: 4px;
-  margin-bottom: 2px;
 }
 </style>
