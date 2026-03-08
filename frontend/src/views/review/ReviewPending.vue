@@ -1,60 +1,39 @@
 <template>
   <div class="review-pending">
     <el-card shadow="never">
-      <!-- 搜索表单 -->
-      <el-form :model="searchForm" inline class="search-form">
-        <el-form-item label="文档标题">
-          <el-input v-model="searchForm.title" placeholder="请输入文档标题" clearable />
-        </el-form-item>
-        <el-form-item label="优先级">
-          <el-select v-model="searchForm.priority" placeholder="请选择优先级" clearable>
-            <el-option label="高" value="high" />
-            <el-option label="中" value="medium" />
-            <el-option label="低" value="low" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>
-            搜索
-          </el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-
       <!-- 待评审列表 -->
       <el-table v-loading="loading" :data="reviewList" stripe>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="documentTitle" label="文档标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="documentType" label="文档类型" width="100">
+        <el-table-column prop="reviewerName" label="评审人" width="120" />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.documentType }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="submitterName" label="提交人" width="120" />
-        <el-table-column prop="priority" label="优先级" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getPriorityType(row.priority)" size="small">
-              {{ getPriorityText(row.priority) }}
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ getStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="submittedAt" label="提交时间" width="180" />
-        <el-table-column prop="dueDate" label="截止日期" width="150">
+        <el-table-column prop="decision" label="决定" width="100">
           <template #default="{ row }">
-            <span :class="{ 'overdue': isOverdue(row.dueDate) }">
-              {{ row.dueDate || '-' }}
-            </span>
+            <el-tag v-if="row.decision" :type="getDecisionType(row.decision)" size="small">
+              {{ getDecisionText(row.decision) }}
+            </el-tag>
+            <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="progress" label="进度" width="150">
+        <el-table-column prop="submittedAt" label="提交时间" width="180">
           <template #default="{ row }">
-            <el-progress :percentage="row.progress" :stroke-width="8" />
+            {{ formatDate(row.submittedAt) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" @click="startReview(row)">开始评审</el-button>
+            <el-button type="primary" link @click="viewDocument(row)" v-if="row.status === 'PENDING'">
+              开始评审
+            </el-button>
+            <el-button type="info" link @click="viewDocument(row)" v-else>
+              查看详情
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -73,13 +52,13 @@
     </el-card>
 
     <!-- 评审弹窗 -->
-    <el-dialog v-model="reviewVisible" title="文档评审" width="900px" destroy-on-close>
+    <el-dialog v-model="reviewVisible" title="文档评审" width="700px" destroy-on-close>
       <el-form ref="reviewFormRef" :model="reviewForm" :rules="reviewRules" label-width="100px">
         <el-form-item label="文档信息">
           <div class="doc-info">
             <p><strong>标题：</strong>{{ currentReview?.documentTitle }}</p>
-            <p><strong>提交人：</strong>{{ currentReview?.submitterName }}</p>
-            <p><strong>提交时间：</strong>{{ currentReview?.submittedAt }}</p>
+            <p><strong>评审人：</strong>{{ currentReview?.reviewerName }}</p>
+            <p><strong>状态：</strong>{{ getStatusText(currentReview?.status || '') }}</p>
           </div>
         </el-form-item>
 
@@ -90,22 +69,31 @@
           </el-button>
         </el-form-item>
 
-        <el-form-item label="评审意见" prop="comment">
-          <el-input v-model="reviewForm.comment" type="textarea" :rows="4" 
-                    placeholder="请输入评审意见" maxlength="2000" show-word-limit />
-        </el-form-item>
-
-        <el-form-item label="评审结果" prop="result">
-          <el-radio-group v-model="reviewForm.result">
-            <el-radio label="approved">通过</el-radio>
-            <el-radio label="rejected">拒绝</el-radio>
-            <el-radio label="revision">需修改</el-radio>
+        <el-form-item label="评审决定" prop="decision">
+          <el-radio-group v-model="reviewForm.decision">
+            <el-radio label="APPROVED">通过</el-radio>
+            <el-radio label="REJECTED">拒绝</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="reviewForm.result === 'revision'" label="修改建议" prop="suggestions">
-          <el-input v-model="reviewForm.suggestions" type="textarea" :rows="3" 
-                    placeholder="请输入修改建议" />
+        <el-form-item label="总体评价" prop="overallComment">
+          <el-input v-model="reviewForm.overallComment" type="textarea" :rows="3" 
+                    placeholder="请输入总体评价" maxlength="2000" show-word-limit />
+        </el-form-item>
+
+        <el-form-item label="优点">
+          <el-input v-model="reviewForm.pros" type="textarea" :rows="2" 
+                    placeholder="文档的优点" />
+        </el-form-item>
+
+        <el-form-item label="不足">
+          <el-input v-model="reviewForm.cons" type="textarea" :rows="2" 
+                    placeholder="需要改进的地方" />
+        </el-form-item>
+
+        <el-form-item label="建议">
+          <el-input v-model="reviewForm.suggestions" type="textarea" :rows="2" 
+                    placeholder="修改建议" />
         </el-form-item>
       </el-form>
 
@@ -121,22 +109,27 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { request } from '@/api/request'
 
 const route = useRoute()
+const router = useRouter()
 
 interface Review {
   id: number
   documentId: number
   documentTitle: string
-  documentType: string
-  submitterName: string
-  priority: string
-  submittedAt: string
-  dueDate: string
-  progress: number
+  reviewerId: number
+  reviewerName: string
+  status: string
+  decision: string | null
+  overallComment: string | null
+  pros: string | null
+  cons: string | null
+  suggestions: string | null
+  submittedAt: string | null
+  createdAt: string | null
 }
 
 const loading = ref(false)
@@ -144,11 +137,6 @@ const reviewList = ref<Review[]>([])
 const reviewVisible = ref(false)
 const currentReview = ref<Review | null>(null)
 const submitting = ref(false)
-
-const searchForm = reactive({
-  title: '',
-  priority: ''
-})
 
 const pagination = reactive({
   page: 1,
@@ -158,65 +146,82 @@ const pagination = reactive({
 
 const reviewFormRef = ref<FormInstance>()
 const reviewForm = reactive({
-  comment: '',
-  result: '',
+  decision: '',
+  overallComment: '',
+  pros: '',
+  cons: '',
   suggestions: ''
 })
 
 const reviewRules: FormRules = {
-  comment: [
-    { required: true, message: '请输入评审意见', trigger: 'blur' }
+  decision: [
+    { required: true, message: '请选择评审决定', trigger: 'change' }
   ],
-  result: [
-    { required: true, message: '请选择评审结果', trigger: 'change' }
+  overallComment: [
+    { required: true, message: '请输入总体评价', trigger: 'blur' }
   ]
 }
 
-const getPriorityType = (priority: string) => {
+const getStatusType = (status: string) => {
   const types: Record<string, string> = {
-    high: 'danger',
-    medium: 'warning',
-    low: 'info'
+    PENDING: 'warning',
+    IN_PROGRESS: 'primary',
+    SUBMITTED: 'success',
+    COMPLETED: 'success'
   }
-  return types[priority] || 'info'
+  return types[status] || 'info'
 }
 
-const getPriorityText = (priority: string) => {
+const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    high: '高',
-    medium: '中',
-    low: '低'
+    PENDING: '待评审',
+    IN_PROGRESS: '评审中',
+    SUBMITTED: '已提交',
+    COMPLETED: '已完成'
   }
-  return texts[priority] || priority
+  return texts[status] || status
 }
 
-const isOverdue = (dueDate: string) => {
-  if (!dueDate) return false
-  return new Date(dueDate) < new Date()
+const getDecisionType = (decision: string) => {
+  const types: Record<string, string> = {
+    APPROVED: 'success',
+    REJECTED: 'danger'
+  }
+  return types[decision] || 'info'
 }
 
-const handleSearch = () => {
-  pagination.page = 1
-  fetchReviews()
+const getDecisionText = (decision: string) => {
+  const texts: Record<string, string> = {
+    APPROVED: '通过',
+    REJECTED: '拒绝'
+  }
+  return texts[decision] || decision
 }
 
-const handleReset = () => {
-  searchForm.title = ''
-  searchForm.priority = ''
-  handleSearch()
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return '-'
+  return dateStr.replace('T', ' ').substring(0, 19)
 }
 
-const startReview = (review: Review) => {
+const viewDocument = (review: Review) => {
   currentReview.value = review
-  reviewForm.comment = ''
-  reviewForm.result = ''
-  reviewForm.suggestions = ''
+  reviewForm.decision = review.decision || ''
+  reviewForm.overallComment = review.overallComment || ''
+  reviewForm.pros = review.pros || ''
+  reviewForm.cons = review.cons || ''
+  reviewForm.suggestions = review.suggestions || ''
   reviewVisible.value = true
 }
 
-const previewDocument = () => {
-  if (currentReview.value) {
-    window.open(`/api/v1/documents/${currentReview.value.documentId}/preview`, '_blank')
+const previewDocument = async () => {
+  if (!currentReview.value) return
+  try {
+    const res = await request.get(`/documents/${currentReview.value.documentId}/preview`)
+    if (res.data) {
+      window.open(res.data, '_blank')
+    }
+  } catch (error) {
+    ElMessage.error('获取预览链接失败')
   }
 }
 
@@ -228,11 +233,11 @@ const submitReview = async () => {
     
     submitting.value = true
     try {
-      await request.post('/reviews', {
-        assignmentId: currentReview.value?.id,
-        documentId: currentReview.value?.documentId,
-        comment: reviewForm.comment,
-        result: reviewForm.result,
+      await request.post(`/reviews/submit/${currentReview.value.documentId}`, {
+        decision: reviewForm.decision,
+        overallComment: reviewForm.overallComment,
+        pros: reviewForm.pros,
+        cons: reviewForm.cons,
         suggestions: reviewForm.suggestions
       })
       
@@ -251,11 +256,10 @@ const fetchReviews = async () => {
   loading.value = true
   try {
     const res = await request.get('/reviews/pending', {
-      ...searchForm,
-      page: pagination.page,
-      pageSize: pagination.pageSize
+      current: pagination.page,
+      size: pagination.pageSize
     })
-    reviewList.value = res.data?.list || []
+    reviewList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {
     ElMessage.error('获取待评审列表失败')
@@ -265,16 +269,6 @@ const fetchReviews = async () => {
 }
 
 onMounted(() => {
-  // 检查URL参数
-  const reviewId = route.query.id as string
-  if (reviewId) {
-    // 如果有指定ID，打开对应的评审
-    const review = reviewList.value.find(r => r.id === parseInt(reviewId))
-    if (review) {
-      startReview(review)
-    }
-  }
-  
   fetchReviews()
 })
 </script>
@@ -282,10 +276,6 @@ onMounted(() => {
 <style scoped>
 .review-pending {
   padding: 20px;
-}
-
-.search-form {
-  margin-bottom: 16px;
 }
 
 .pagination {
@@ -301,9 +291,5 @@ onMounted(() => {
 
 .doc-info p {
   margin: 8px 0;
-}
-
-.overdue {
-  color: #f56c6c;
 }
 </style>
