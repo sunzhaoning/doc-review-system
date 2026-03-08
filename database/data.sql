@@ -80,12 +80,18 @@ INSERT INTO sys_permission (id, perm_name, perm_code, resource_type, resource_ur
 (4, '编辑文档', 'doc:edit', 'button', '/api/v1/documents/*', 'PUT', '编辑文档'),
 (5, '删除文档', 'doc:delete', 'button', '/api/v1/documents/*', 'DELETE', '删除文档'),
 (6, '提交评审', 'doc:submit', 'button', '/api/v1/documents/*/submit', 'POST', '提交评审'),
+(7, '撤回评审', 'doc:withdraw', 'button', '/api/v1/documents/*/withdraw', 'POST', '撤回评审'),
+(8, '文档预览', 'doc:preview', 'button', '/api/v1/documents/*/preview', 'GET', '预览文档'),
+(9, '文档下载', 'doc:download', 'button', '/api/v1/documents/*/download', 'GET', '下载文档'),
 -- 评审权限
 (10, '评审列表', 'review:list', 'menu', '/api/v1/reviews/pending', 'GET', '查看评审列表'),
 (11, '评审详情', 'review:query', 'button', '/api/v1/reviews/*', 'GET', '查看评审详情'),
 (12, '提交评审', 'review:submit', 'button', '/api/v1/reviews/*/submit', 'POST', '提交评审意见'),
 -- 归档权限
 (20, '归档列表', 'archive:list', 'menu', '/api/v1/archives', 'GET', '查看归档列表'),
+(21, '创建归档', 'archive:create', 'button', '/api/v1/archives/documents/*', 'POST', '归档文档'),
+(22, '删除归档', 'archive:delete', 'button', '/api/v1/archives/*', 'DELETE', '取消归档'),
+(23, '导出归档', 'archive:export', 'button', '/api/v1/archives/*/export', 'GET', '导出评审报告'),
 -- 用户管理权限
 (30, '用户列表', 'sys:user:list', 'menu', '/api/v1/users', 'GET', '查看用户列表'),
 (31, '用户查询', 'sys:user:query', 'button', '/api/v1/users/*', 'GET', '查看用户详情'),
@@ -100,8 +106,17 @@ INSERT INTO sys_permission (id, perm_name, perm_code, resource_type, resource_ur
 (44, '角色删除', 'sys:role:delete', 'button', '/api/v1/roles/*', 'DELETE', '删除角色'),
 -- 菜单管理权限
 (50, '菜单列表', 'sys:menu:list', 'menu', '/api/v1/menus', 'GET', '查看菜单列表'),
+(51, '新增菜单', 'sys:menu:create', 'button', '/api/v1/menus', 'POST', '新增菜单'),
+(52, '编辑菜单', 'sys:menu:edit', 'button', '/api/v1/menus/*', 'PUT', '编辑菜单'),
+(53, '删除菜单', 'sys:menu:delete', 'button', '/api/v1/menus/*', 'DELETE', '删除菜单'),
+-- 评论权限
+(13, '评论列表', 'comment:list', 'button', '/api/v1/documents/*/comments', 'GET', '查看评论列表'),
+(14, '创建评论', 'comment:create', 'button', '/api/v1/documents/*/comments', 'POST', '创建评论'),
+(15, '编辑评论', 'comment:edit', 'button', '/api/v1/comments/*', 'PUT', '编辑评论'),
+(16, '删除评论', 'comment:delete', 'button', '/api/v1/comments/*', 'DELETE', '删除评论'),
 -- 系统配置权限
-(60, '系统配置', 'sys:config:edit', 'button', '/api/v1/system/config', 'PUT', '编辑系统配置');
+(60, '查询系统配置', 'sys:config:query', 'button', '/api/v1/system/config', 'GET', '查询系统配置'),
+(61, '编辑系统配置', 'sys:config:edit', 'button', '/api/v1/system/config', 'PUT', '编辑系统配置');
 
 SELECT setval('sys_permission_id_seq', (SELECT MAX(id) FROM sys_permission));
 
@@ -150,7 +165,7 @@ SELECT 1, id FROM sys_permission WHERE deleted = 0;
 
 -- 给提交者分配文档相关权限
 INSERT INTO sys_role_permission (role_id, permission_id) VALUES
-(3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 20);
+(3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 20);
 
 -- 给评审者分配评审相关权限
 INSERT INTO sys_role_permission (role_id, permission_id) VALUES

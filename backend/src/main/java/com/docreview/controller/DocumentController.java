@@ -68,6 +68,12 @@ public class DocumentController {
         return Result.success(documentService.getMyDocuments(current, size, status));
     }
     
+    @Operation(summary = "获取文档统计数据")
+    @GetMapping("/stats")
+    public Result<java.util.Map<String, Object>> getStats() {
+        return Result.success(documentService.getStats());
+    }
+    
     @Operation(summary = "获取文档详情")
     @SaCheckPermission("doc:query")
     @GetMapping("/{id}")

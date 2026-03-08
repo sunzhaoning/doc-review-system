@@ -114,6 +114,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setPassword(null);
         
         updateById(user);
+        
+        // 更新角色关联
+        if (request.getRoleIds() != null) {
+            assignRoles(id, request.getRoleIds());
+        }
     }
     
     @Override
@@ -124,8 +129,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
         
-        user.setDeleted(1);
-        updateById(user);
+        // 使用 MyBatis-Plus 的逻辑删除
+        removeById(id);
         
         // 删除用户角色关联
         userRoleMapper.deleteByUserId(id);
@@ -182,6 +187,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     .collect(Collectors.toList());
             userRoleMapper.batchInsert(list);
         }
+    }
+    
+    @Override
+    public List<UserResponse> search(String keyword, Integer limit) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getDeleted, 0)
+               .eq(User::getStatus, 1);
+        
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w
+                    .like(User::getUsername, keyword)
+                    .or()
+                    .like(User::getRealName, keyword));
+        }
+        
+        wrapper.last("LIMIT " + Math.min(limit, 50));
+        
+        return list(wrapper).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
     
     private UserResponse convertToResponse(User user) {

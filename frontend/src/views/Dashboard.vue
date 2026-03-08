@@ -242,13 +242,13 @@ const fetchDashboardData = async () => {
   try {
     const [statsRes, docsRes, reviewsRes] = await Promise.all([
       request.get('/documents/stats'),
-      request.get('/documents', { limit: 5 }),
-      request.get('/reviews/pending', { limit: 5 })
+      request.get('/documents', { current: 1, size: 5 }),
+      request.get('/reviews/pending', { current: 1, size: 5 })
     ])
     
     stats.value = statsRes.data
-    recentDocuments.value = docsRes.data?.list || []
-    pendingReviews.value = reviewsRes.data?.list || []
+    recentDocuments.value = docsRes.data?.records || []
+    pendingReviews.value = reviewsRes.data?.records || []
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error)
   }

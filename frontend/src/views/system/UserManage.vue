@@ -302,8 +302,8 @@ const handleAssignRole = async (user: User) => {
   
   // 获取所有角色
   try {
-    const res = await request.get('/roles', { pageSize: 1000 })
-    allRoles.value = res.data?.list || []
+    const res = await request.get('/roles', { size: 1000 })
+    allRoles.value = res.data?.records || []
   } catch {
     ElMessage.error('获取角色列表失败')
     return
@@ -341,10 +341,10 @@ const fetchUsers = async () => {
   try {
     const res = await request.get('/users', {
       ...searchForm,
-      page: pagination.page,
-      pageSize: pagination.pageSize
+      current: pagination.page,
+      size: pagination.pageSize
     })
-    userList.value = res.data?.list || []
+    userList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {
     ElMessage.error('获取用户列表失败')

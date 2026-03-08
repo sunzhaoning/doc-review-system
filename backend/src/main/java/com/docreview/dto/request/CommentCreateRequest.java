@@ -1,7 +1,6 @@
 package com.docreview.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -14,9 +13,8 @@ import lombok.Data;
 public class CommentCreateRequest {
     
     /**
-     * 文档ID
+     * 文档ID（由路径参数设置）
      */
-    @NotNull(message = "文档ID不能为空")
     private Long documentId;
     
     /**

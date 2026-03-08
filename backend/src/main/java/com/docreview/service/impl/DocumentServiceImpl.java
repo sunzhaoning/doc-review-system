@@ -313,6 +313,36 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         return getPage(current, size, null, status, null, userId);
     }
     
+    @Override
+    public java.util.Map<String, Object> getStats() {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        
+        // 文档总数（未删除的）
+        long totalDocuments = count(new LambdaQueryWrapper<Document>()
+                .eq(Document::getDeleted, 0));
+        stats.put("totalDocuments", totalDocuments);
+        
+        // 待评审数
+        long pendingReviews = count(new LambdaQueryWrapper<Document>()
+                .eq(Document::getDeleted, 0)
+                .eq(Document::getStatus, DocumentStatus.PENDING.getCode()));
+        stats.put("pendingReviews", pendingReviews);
+        
+        // 已完成评审数
+        long completedReviews = count(new LambdaQueryWrapper<Document>()
+                .eq(Document::getDeleted, 0)
+                .in(Document::getStatus, DocumentStatus.APPROVED.getCode(), DocumentStatus.REJECTED.getCode()));
+        stats.put("completedReviews", completedReviews);
+        
+        // 已归档数
+        long archivedDocuments = count(new LambdaQueryWrapper<Document>()
+                .eq(Document::getDeleted, 0)
+                .eq(Document::getArchived, true));
+        stats.put("archivedDocuments", archivedDocuments);
+        
+        return stats;
+    }
+    
     /**
      * 校验文件
      */

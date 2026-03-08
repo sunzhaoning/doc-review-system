@@ -77,4 +77,9 @@ public interface UserService extends IService<User> {
      * 分配用户角色
      */
     void assignRoles(Long userId, List<Long> roleIds);
+    
+    /**
+     * 搜索用户
+     */
+    List<UserResponse> search(String keyword, Integer limit);
 }

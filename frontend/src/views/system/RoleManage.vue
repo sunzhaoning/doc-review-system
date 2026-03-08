@@ -363,8 +363,8 @@ const handleAssignPermission = async (role: Role) => {
   
   // 获取所有权限
   try {
-    const res = await request.get('/permissions', { pageSize: 1000 })
-    allPermissions.value = res.data?.list || []
+    const res = await request.get('/permissions', { size: 1000 })
+    allPermissions.value = res.data?.records || []
   } catch {
     ElMessage.error('获取权限列表失败')
     return
@@ -401,10 +401,10 @@ const fetchRoles = async () => {
   try {
     const res = await request.get('/roles', {
       ...searchForm,
-      page: pagination.page,
-      pageSize: pagination.pageSize
+      current: pagination.page,
+      size: pagination.pageSize
     })
-    roleList.value = res.data?.list || []
+    roleList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {
     ElMessage.error('获取角色列表失败')

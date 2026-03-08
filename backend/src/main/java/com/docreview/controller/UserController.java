@@ -44,6 +44,14 @@ public class UserController {
         return Result.success(userService.getPage(current, size, username, realName, status));
     }
     
+    @Operation(summary = "搜索用户")
+    @GetMapping("/search")
+    public Result<List<UserResponse>> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        return Result.success(userService.search(keyword, limit));
+    }
+    
     @Operation(summary = "获取用户详情")
     @SaCheckPermission("sys:user:query")
     @GetMapping("/{id}")

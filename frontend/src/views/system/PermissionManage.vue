@@ -261,10 +261,10 @@ const fetchPermissions = async () => {
   try {
     const res = await request.get('/permissions', {
       ...searchForm,
-      page: pagination.page,
-      pageSize: pagination.pageSize
+      current: pagination.page,
+      size: pagination.pageSize
     })
-    permissionList.value = res.data?.list || []
+    permissionList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {
     ElMessage.error('获取权限列表失败')

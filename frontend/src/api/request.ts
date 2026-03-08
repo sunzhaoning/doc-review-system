@@ -16,7 +16,8 @@ service.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
     if (authStore.token) {
-      config.headers.Authorization = authStore.token
+      // Sa-Token 默认从 satoken 请求头读取 token
+      config.headers.satoken = authStore.token
     }
     return config
   },

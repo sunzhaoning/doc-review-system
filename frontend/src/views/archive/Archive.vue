@@ -206,12 +206,19 @@ const handleBatchDownload = async () => {
 const fetchArchives = async () => {
   loading.value = true
   try {
-    const res = await request.get('/archive/search', {
-      ...searchForm,
-      page: pagination.page,
-      pageSize: pagination.pageSize
-    })
-    archiveList.value = res.data?.list || []
+    const params: Record<string, any> = {
+      current: pagination.page,
+      size: pagination.pageSize
+    }
+    if (searchForm.keyword) params.keyword = searchForm.keyword
+    if (searchForm.type) params.reviewType = searchForm.type
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      params.startDate = searchForm.dateRange[0]
+      params.endDate = searchForm.dateRange[1]
+    }
+    
+    const res = await request.get('/archives', { params })
+    archiveList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {
     ElMessage.error('获取归档列表失败')

@@ -67,4 +67,9 @@ public interface DocumentService extends IService<Document> {
      * 获取我的文档
      */
     PageResult<DocumentResponse> getMyDocuments(Integer current, Integer size, String status);
+    
+    /**
+     * 获取文档统计数据
+     */
+    java.util.Map<String, Object> getStats();
 }
