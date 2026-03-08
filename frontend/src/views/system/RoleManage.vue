@@ -319,6 +319,7 @@ const handleSubmit = async () => {
 
 const handleAssignMenu = async (role: Role) => {
   currentRole.value = role
+  menuDialogVisible.value = true
   
   // 获取菜单树
   try {
@@ -329,17 +330,17 @@ const handleAssignMenu = async (role: Role) => {
     return
   }
   
-  // 获取角色当前菜单
+  // 获取角色当前菜单（需要等待树组件渲染完成）
   try {
     const res = await request.get(`/roles/${role.id}/menus`)
+    // 使用 nextTick 确保树组件已渲染
+    await new Promise(resolve => setTimeout(resolve, 100))
     if (menuTreeRef.value) {
       menuTreeRef.value.setCheckedKeys(res.data || [])
     }
   } catch {
     // ignore
   }
-  
-  menuDialogVisible.value = true
 }
 
 const handleSaveMenus = async () => {

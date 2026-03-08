@@ -170,10 +170,10 @@ const toggleCollapse = () => {
 const handleCommand = async (command: string) => {
   switch (command) {
     case 'profile':
-      router.push('/profile')
+      ElMessage.info('个人中心功能开发中')
       break
     case 'settings':
-      router.push('/settings')
+      ElMessage.info('系统设置功能开发中')
       break
     case 'logout':
       try {
