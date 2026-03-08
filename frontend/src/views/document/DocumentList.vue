@@ -8,19 +8,19 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="草稿" value="draft" />
-            <el-option label="待评审" value="pending" />
-            <el-option label="评审中" value="reviewing" />
-            <el-option label="已通过" value="approved" />
-            <el-option label="已拒绝" value="rejected" />
-            <el-option label="已归档" value="archived" />
+            <el-option label="草稿" value="DRAFT" />
+            <el-option label="待评审" value="PENDING" />
+            <el-option label="评审中" value="REVIEWING" />
+            <el-option label="已通过" value="APPROVED" />
+            <el-option label="已拒绝" value="REJECTED" />
+            <el-option label="已归档" value="ARCHIVED" />
           </el-select>
         </el-form-item>
-        <el-form-item label="文档类型">
-          <el-select v-model="searchForm.type" placeholder="请选择类型" clearable>
-            <el-option label="PDF" value="pdf" />
-            <el-option label="Word" value="docx" />
-            <el-option label="Markdown" value="md" />
+        <el-form-item label="评审类型">
+          <el-select v-model="searchForm.reviewType" placeholder="请选择类型" clearable>
+            <el-option label="内部评审" value="internal" />
+            <el-option label="外部评审" value="external" />
+            <el-option label="交叉评审" value="cross" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -53,9 +53,14 @@
       >
         <el-table-column type="selection" width="55" />
         <el-table-column prop="title" label="文档标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="type" label="类型" width="100">
+        <el-table-column prop="fileType" label="类型" width="80">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.type?.toUpperCase() }}</el-tag>
+            <el-tag size="small">{{ row.fileType?.toUpperCase() || '-' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reviewType" label="评审类型" width="100">
+          <template #default="{ row }">
+            <el-tag size="small" type="info">{{ getReviewTypeText(row.reviewType) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
@@ -66,18 +71,21 @@
           </template>
         </el-table-column>
         <el-table-column prop="version" label="版本" width="80" />
-        <el-table-column prop="authorName" label="作者" width="120" />
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column prop="updatedAt" label="更新时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="submitterName" label="提交人" width="120" />
+        <el-table-column prop="createdAt" label="创建时间" width="180">
+          <template #default="{ row }">
+            {{ formatDate(row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="viewDocument(row.id)">查看</el-button>
-            <el-button type="primary" link @click="editDocument(row.id)" 
-                       v-if="row.status === 'draft'">编辑</el-button>
+            <el-button type="primary" link @click="editDocument(row)" 
+                       v-if="row.status === 'DRAFT'">编辑</el-button>
             <el-button type="primary" link @click="submitReview(row.id)"
-                       v-if="row.status === 'draft'">提交评审</el-button>
+                       v-if="row.status === 'DRAFT'">提交评审</el-button>
             <el-button type="danger" link @click="deleteDocument(row)"
-                       v-if="row.status === 'draft'">删除</el-button>
+                       v-if="row.status === 'DRAFT'">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -114,12 +122,14 @@ const route = useRoute()
 interface Document {
   id: number
   title: string
-  type: string
+  fileType: string
+  reviewType: string
   status: string
   version: string
-  authorName: string
+  submitterName: string
   createdAt: string
   updatedAt: string
+  archived: boolean
 }
 
 const loading = ref(false)
@@ -131,7 +141,7 @@ const currentDocId = ref<number>(0)
 const searchForm = reactive({
   title: '',
   status: '',
-  type: ''
+  reviewType: ''
 })
 
 const pagination = reactive({
@@ -142,26 +152,40 @@ const pagination = reactive({
 
 const getStatusType = (status: string) => {
   const types: Record<string, string> = {
-    draft: 'info',
-    pending: 'warning',
-    reviewing: 'primary',
-    approved: 'success',
-    rejected: 'danger',
-    archived: ''
+    DRAFT: 'info',
+    PENDING: 'warning',
+    REVIEWING: 'primary',
+    APPROVED: 'success',
+    REJECTED: 'danger',
+    ARCHIVED: ''
   }
   return types[status] || 'info'
 }
 
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    draft: '草稿',
-    pending: '待评审',
-    reviewing: '评审中',
-    approved: '已通过',
-    rejected: '已拒绝',
-    archived: '已归档'
+    DRAFT: '草稿',
+    PENDING: '待评审',
+    REVIEWING: '评审中',
+    APPROVED: '已通过',
+    REJECTED: '已拒绝',
+    ARCHIVED: '已归档'
   }
   return texts[status] || status
+}
+
+const getReviewTypeText = (type: string) => {
+  const texts: Record<string, string> = {
+    internal: '内部评审',
+    external: '外部评审',
+    cross: '交叉评审'
+  }
+  return texts[type] || type || '-'
+}
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  return dateStr.replace('T', ' ').substring(0, 19)
 }
 
 const handleSearch = () => {
@@ -172,7 +196,7 @@ const handleSearch = () => {
 const handleReset = () => {
   searchForm.title = ''
   searchForm.status = ''
-  searchForm.type = ''
+  searchForm.reviewType = ''
   handleSearch()
 }
 
@@ -189,8 +213,9 @@ const viewDocument = (id: number) => {
   detailVisible.value = true
 }
 
-const editDocument = (id: number) => {
-  router.push(`/document/edit/${id}`)
+const editDocument = (doc: Document) => {
+  // 跳转到编辑页面或打开编辑弹窗
+  ElMessage.info('编辑功能开发中')
 }
 
 const submitReview = async (id: number) => {
@@ -200,11 +225,13 @@ const submitReview = async (id: number) => {
       cancelButtonText: '取消',
       type: 'info'
     })
-    await request.post(`/documents/${id}/submit`)
+    await request.post(`/documents/${id}/submit`, { reviewerIds: [] })
     ElMessage.success('已提交评审')
     fetchDocuments()
-  } catch (error) {
-    // 用户取消或请求失败
+  } catch (error: any) {
+    if (error.message) {
+      ElMessage.error(error.message)
+    }
   }
 }
 
@@ -245,12 +272,16 @@ const handleBatchDelete = async () => {
 const fetchDocuments = async () => {
   loading.value = true
   try {
-    const res = await request.get('/documents', {
-      ...searchForm,
-      page: pagination.page,
-      pageSize: pagination.pageSize
-    })
-    documentList.value = res.data?.list || []
+    const params: Record<string, any> = {
+      current: pagination.page,
+      size: pagination.pageSize
+    }
+    if (searchForm.title) params.title = searchForm.title
+    if (searchForm.status) params.status = searchForm.status
+    if (searchForm.reviewType) params.reviewType = searchForm.reviewType
+    
+    const res = await request.get('/documents/my', { params })
+    documentList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {
     ElMessage.error('获取文档列表失败')
