@@ -110,6 +110,15 @@ public class UserController {
         return Result.success();
     }
     
+    @Operation(summary = "修改密码")
+    @PutMapping("/{id}/password")
+    public Result<Void> changePassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        userService.changePassword(id, oldPassword, newPassword);
+        return Result.success();
+    }
+    
     @Operation(summary = "获取用户角色")
     @SaCheckPermission("sys:user:query")
     @GetMapping("/{id}/roles")

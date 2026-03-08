@@ -64,6 +64,11 @@ public interface UserService extends IService<User> {
     void resetPassword(Long id, String newPassword);
     
     /**
+     * 修改密码
+     */
+    void changePassword(Long id, String oldPassword, String newPassword);
+    
+    /**
      * 获取用户角色
      */
     List<Role> getRolesByUserId(Long userId);

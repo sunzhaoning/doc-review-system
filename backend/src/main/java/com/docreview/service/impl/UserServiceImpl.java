@@ -159,6 +159,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
     
     @Override
+    public void changePassword(Long id, String oldPassword, String newPassword) {
+        User user = getById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        
+        // 验证旧密码
+        if (!BCrypt.checkpw(oldPassword, user.getPassword())) {
+            throw new BusinessException(ErrorCode.PASSWORD_ERROR);
+        }
+        
+        // 设置新密码
+        user.setPassword(encodePassword(newPassword));
+        updateById(user);
+    }
+    
+    @Override
     public List<Role> getRolesByUserId(Long userId) {
         return roleMapper.selectByUserId(userId);
     }

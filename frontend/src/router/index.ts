@@ -69,6 +69,20 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/archive/Archive.vue'),
         meta: { title: '归档检索', icon: 'FolderOpened' }
       },
+      // 个人中心
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/Profile.vue'),
+        meta: { title: '个人中心', icon: 'User' }
+      },
+      // 系统设置
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('@/views/Settings.vue'),
+        meta: { title: '系统设置', icon: 'Setting' }
+      },
       // 系统管理
       {
         path: 'system',
