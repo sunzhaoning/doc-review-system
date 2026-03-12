@@ -81,6 +81,7 @@ file:
 
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  public-url: ${MINIO_PUBLIC_URL:}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET:doc-review}

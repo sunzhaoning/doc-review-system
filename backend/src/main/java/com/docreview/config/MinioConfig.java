@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Configuration;
 public class MinioConfig {
     
     private String endpoint;
+    private String publicUrl;
     private String accessKey;
     private String secretKey;
     private String bucketName;

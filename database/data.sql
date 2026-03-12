@@ -34,7 +34,7 @@ INSERT INTO sys_menu (id, parent_id, menu_name, menu_code, menu_type, path, comp
 (10, 5, '用户管理', 'system-user', 2, '/system/user', 'views/system/UserManage.vue', 'sys:user:list', 'User', 0, 1, 1),
 (11, 5, '角色管理', 'system-role', 2, '/system/role', 'views/system/RoleManage.vue', 'sys:role:list', 'UserFilled', 1, 1, 1),
 (12, 5, '菜单管理', 'system-menu', 2, '/system/menu', 'views/system/MenuManage.vue', 'sys:menu:list', 'Menu', 2, 1, 1),
-(13, 5, '权限管理', 'system-permission', 2, '/system/permission', 'views/system/PermissionManage.vue', 'sys:permission:list', 'Lock', 3, 1, 1);
+(13, 5, '权限管理', 'system-permission', 2, '/system/permission', 'views/system/PermissionManage.vue', 'sys:perm:list', 'Lock', 3, 1, 1);
 
 -- 按钮权限
 INSERT INTO sys_menu (id, parent_id, menu_name, menu_code, menu_type, path, component, perms, icon, sort, visible, status) VALUES
@@ -116,7 +116,12 @@ INSERT INTO sys_permission (id, perm_name, perm_code, resource_type, resource_ur
 (16, '删除评论', 'comment:delete', 'button', '/api/v1/comments/*', 'DELETE', '删除评论'),
 -- 系统配置权限
 (60, '查询系统配置', 'sys:config:query', 'button', '/api/v1/system/config', 'GET', '查询系统配置'),
-(61, '编辑系统配置', 'sys:config:edit', 'button', '/api/v1/system/config', 'PUT', '编辑系统配置');
+(61, '编辑系统配置', 'sys:config:edit', 'button', '/api/v1/system/config', 'PUT', '编辑系统配置'),
+-- 权限管理权限
+(70, '权限列表', 'sys:perm:list', 'menu', '/api/v1/permissions', 'GET', '查看权限列表'),
+(71, '权限新增', 'sys:perm:add', 'button', '/api/v1/permissions', 'POST', '新增权限'),
+(72, '权限编辑', 'sys:perm:edit', 'button', '/api/v1/permissions/*', 'PUT', '编辑权限'),
+(73, '权限删除', 'sys:perm:delete', 'button', '/api/v1/permissions/*', 'DELETE', '删除权限');
 
 SELECT setval('sys_permission_id_seq', (SELECT MAX(id) FROM sys_permission));
 

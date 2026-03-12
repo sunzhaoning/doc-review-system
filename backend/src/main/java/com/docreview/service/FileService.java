@@ -2,6 +2,7 @@ package com.docreview.service;
 
 import io.minio.*;
 import io.minio.http.Method;
+import com.docreview.config.MinioConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +24,10 @@ public class FileService {
     
     @Autowired
     private MinioClient minioClient;
-    
+
+    @Autowired
+    private MinioConfig minioConfig;
+
     @Value("${minio.bucket-name}")
     private String bucketName;
     
@@ -120,7 +124,7 @@ public class FileService {
      */
     public String getPreviewUrl(String objectName, int expiry) throws Exception {
         try {
-            return minioClient.getPresignedObjectUrl(
+            String url = minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .bucket(bucketName)
                             .object(objectName)
@@ -128,6 +132,12 @@ public class FileService {
                             .expiry(expiry, TimeUnit.SECONDS)
                             .build()
             );
+            // 如果配置了公网URL，替换内部endpoint为公网地址
+            String publicUrl = minioConfig.getPublicUrl();
+            if (publicUrl != null && !publicUrl.isEmpty()) {
+                url = url.replace(minioConfig.getEndpoint(), publicUrl);
+            }
+            return url;
         } catch (Exception e) {
             log.error("获取预览URL失败: {}", objectName, e);
             throw new Exception("获取预览URL失败: " + e.getMessage());
