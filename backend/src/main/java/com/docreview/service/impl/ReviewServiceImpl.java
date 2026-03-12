@@ -23,6 +23,7 @@ import com.docreview.mapper.ReviewMapper;
 import com.docreview.mapper.ReviewerAssignmentMapper;
 import com.docreview.mapper.UserMapper;
 import com.docreview.service.ReviewService;
+import com.docreview.service.SystemConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +52,9 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
     
     @Autowired
     private ReviewerAssignmentMapper reviewerAssignmentMapper;
+
+    @Autowired
+    private SystemConfigService systemConfigService;
     
     @Override
     public PageResult<ReviewResponse> getPendingReviews(Integer current, Integer size, String status) {
@@ -396,15 +400,36 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
         
         // 所有评审者都已提交
         if (completed == total && total > 0) {
-            // TODO: 根据配置决定通过条件（全部通过、多数通过等）
-            // 目前使用全部通过
-            if (approved == total) {
+            // 从系统配置读取通过条件，默认 "all"（全部通过）
+            String passCondition = systemConfigService.getConfig("review.pass-condition");
+            if (passCondition == null || passCondition.isEmpty()) {
+                passCondition = "all";
+            }
+
+            boolean passed;
+            switch (passCondition) {
+                case "any":
+                    // 任一通过即通过
+                    passed = approved > 0;
+                    break;
+                case "majority":
+                    // 多数通过即通过
+                    passed = approved > total / 2;
+                    break;
+                case "all":
+                default:
+                    // 全部通过
+                    passed = approved == total;
+                    break;
+            }
+
+            if (passed) {
                 document.setStatus(DocumentStatus.APPROVED.getCode());
             } else {
                 document.setStatus(DocumentStatus.REJECTED.getCode());
             }
             documentMapper.updateById(document);
-            log.info("更新文档状态: documentId={}, status={}", documentId, document.getStatus());
+            log.info("更新文档状态: documentId={}, status={}, passCondition={}", documentId, document.getStatus(), passCondition);
         }
     }
     

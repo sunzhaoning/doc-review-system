@@ -302,17 +302,18 @@ const handleAssignRole = async (user: User) => {
   
   // 获取所有角色
   try {
-    const res = await request.get('/roles', { size: 1000 })
-    allRoles.value = res.data?.records || []
+    const res = await request.get('/roles/all')
+    allRoles.value = res.data || []
   } catch {
     ElMessage.error('获取角色列表失败')
     return
   }
-  
-  // 获取用户当前角色
+
+  // 获取用户当前角色（返回 Role 对象数组，需提取 ID）
   try {
     const res = await request.get(`/users/${user.id}/roles`)
-    selectedRoleIds.value = res.data || []
+    const roles = res.data || []
+    selectedRoleIds.value = roles.map((role: any) => role.id)
   } catch {
     selectedRoleIds.value = []
   }
@@ -322,10 +323,10 @@ const handleAssignRole = async (user: User) => {
 
 const handleSaveRoles = async () => {
   if (!currentUser.value) return
-  
+
   submitting.value = true
   try {
-    await request.put(`/users/${currentUser.value.id}/roles`, selectedRoleIds.value)
+    await request.put(`/users/${currentUser.value.id}/roles`, { roleIds: selectedRoleIds.value })
     ElMessage.success('角色分配成功')
     roleDialogVisible.value = false
     fetchUsers()

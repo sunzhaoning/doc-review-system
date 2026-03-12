@@ -6,6 +6,7 @@ import com.docreview.dto.request.PermissionUpdateRequest;
 import com.docreview.dto.response.PageResult;
 import com.docreview.dto.response.PermissionResponse;
 import com.docreview.dto.response.Result;
+import com.docreview.entity.Permission;
 import com.docreview.service.PermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,7 +31,7 @@ public class PermissionController {
     private PermissionService permissionService;
     
     @Operation(summary = "获取权限列表")
-    @SaCheckPermission("sys:role:list")
+    @SaCheckPermission("sys:perm:list")
     @GetMapping
     public Result<PageResult<PermissionResponse>> getPage(
             @RequestParam(defaultValue = "1") Integer current,
@@ -41,24 +42,27 @@ public class PermissionController {
     }
     
     @Operation(summary = "获取所有权限")
-    @SaCheckPermission("sys:role:list")
+    @SaCheckPermission("sys:perm:list")
     @GetMapping("/all")
     public Result<List<PermissionResponse>> getAll() {
         return Result.success(permissionService.getAllPermissions());
     }
     
     @Operation(summary = "获取权限详情")
-    @SaCheckPermission("sys:role:query")
+    @SaCheckPermission("sys:perm:list")
     @GetMapping("/{id}")
     public Result<PermissionResponse> getById(@PathVariable Long id) {
-        return Result.success(permissionService.getAllPermissions().stream()
-                .filter(p -> p.getId().equals(id))
-                .findFirst()
-                .orElse(null));
+        Permission permission = permissionService.getById(id);
+        if (permission == null) {
+            return Result.error(40001, "权限不存在");
+        }
+        PermissionResponse response = new PermissionResponse();
+        org.springframework.beans.BeanUtils.copyProperties(permission, response);
+        return Result.success(response);
     }
     
     @Operation(summary = "创建权限")
-    @SaCheckPermission("sys:role:create")
+    @SaCheckPermission("sys:perm:add")
     @PostMapping
     public Result<Long> create(@Valid @RequestBody PermissionCreateRequest request) {
         Long id = permissionService.createPermission(request);
@@ -66,7 +70,7 @@ public class PermissionController {
     }
     
     @Operation(summary = "更新权限")
-    @SaCheckPermission("sys:role:edit")
+    @SaCheckPermission("sys:perm:edit")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody PermissionUpdateRequest request) {
         permissionService.updatePermission(id, request);
@@ -74,7 +78,7 @@ public class PermissionController {
     }
     
     @Operation(summary = "删除权限")
-    @SaCheckPermission("sys:role:delete")
+    @SaCheckPermission("sys:perm:delete")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         permissionService.deletePermission(id);

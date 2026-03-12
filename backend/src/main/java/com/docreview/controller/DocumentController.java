@@ -97,6 +97,23 @@ public class DocumentController {
         return Result.success();
     }
     
+    @Operation(summary = "批量删除文档")
+    @SaCheckPermission("doc:delete")
+    @DeleteMapping("/batch")
+    public Result<Void> batchDelete(@RequestBody Map<String, List<Long>> body) {
+        List<Long> ids = body.get("ids");
+        if (ids != null && !ids.isEmpty()) {
+            for (Long id : ids) {
+                try {
+                    documentService.deleteDocument(id);
+                } catch (Exception e) {
+                    // 跳过无法删除的文档，继续处理其他文档
+                }
+            }
+        }
+        return Result.success();
+    }
+
     @Operation(summary = "提交评审")
     @SaCheckPermission("doc:submit")
     @PostMapping("/{id}/submit")

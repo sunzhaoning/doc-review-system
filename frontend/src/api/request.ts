@@ -16,8 +16,8 @@ service.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
     if (authStore.token) {
-      // Sa-Token 默认从 satoken 请求头读取 token
-      config.headers.satoken = authStore.token
+      // Sa-Token 配置的 token-name 是 Authorization
+      config.headers.Authorization = authStore.token
     }
     return config
   },
@@ -29,8 +29,13 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   (response: AxiosResponse) => {
+    // 如果请求的 responseType 是 blob，直接返回 data，不做 JSON 解构
+    if (response.config.responseType === 'blob') {
+      return response.data
+    }
+
     const { code, message, data } = response.data
-    
+
     if (code === 200) {
       return response.data
     } else {

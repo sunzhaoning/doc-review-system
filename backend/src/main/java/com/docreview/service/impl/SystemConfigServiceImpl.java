@@ -9,11 +9,16 @@ import com.docreview.mapper.SystemConfigMapper;
 import com.docreview.service.SystemConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.naming.Context;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -40,8 +45,8 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
     private static final String LDAP_EMAIL_ATTRIBUTE = "ldap.email-attribute";
     private static final String LDAP_NAME_ATTRIBUTE = "ldap.name-attribute";
     
-    // 密码加密密钥（实际项目中应从配置文件读取）
-    private static final String SECRET_KEY = "doc-review-system-secret";
+    @Value("${security.encrypt-key:doc-review-system-secret}")
+    private String secretKey;
     
     @Override
     public String getConfig(String key) {
@@ -113,22 +118,41 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
     
     @Override
     public boolean testLdapConnection(LdapConfigRequest request) {
-        // TODO: 实际的LDAP连接测试
-        // 这里简化实现，实际项目中应该使用LDAP SDK进行连接测试
+        if (request.getUrl() == null || request.getUrl().isEmpty()) {
+            return false;
+        }
+        if (request.getBaseDn() == null || request.getBaseDn().isEmpty()) {
+            return false;
+        }
+
+        DirContext ctx = null;
         try {
-            // 模拟测试
-            if (request.getUrl() == null || request.getUrl().isEmpty()) {
-                return false;
+            Hashtable<String, String> env = new Hashtable<>();
+            env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+            env.put(Context.PROVIDER_URL, request.getUrl());
+            env.put(Context.SECURITY_AUTHENTICATION, "simple");
+            if (request.getBindDn() != null && !request.getBindDn().isEmpty()) {
+                env.put(Context.SECURITY_PRINCIPAL, request.getBindDn());
+                env.put(Context.SECURITY_CREDENTIALS, request.getBindPassword() != null ? request.getBindPassword() : "");
             }
-            if (request.getBaseDn() == null || request.getBaseDn().isEmpty()) {
-                return false;
-            }
-            
-            log.info("测试LDAP连接: url={}, baseDn={}", request.getUrl(), request.getBaseDn());
+            // 设置连接超时
+            env.put("com.sun.jndi.ldap.connect.timeout", "5000");
+            env.put("com.sun.jndi.ldap.read.timeout", "5000");
+
+            ctx = new InitialDirContext(env);
+            log.info("LDAP连接测试成功: url={}, baseDn={}", request.getUrl(), request.getBaseDn());
             return true;
         } catch (Exception e) {
-            log.error("LDAP连接测试失败", e);
+            log.error("LDAP连接测试失败: url={}, error={}", request.getUrl(), e.getMessage());
             return false;
+        } finally {
+            if (ctx != null) {
+                try {
+                    ctx.close();
+                } catch (Exception e) {
+                    log.warn("关闭LDAP连接失败", e);
+                }
+            }
         }
     }
     
@@ -146,7 +170,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
             return "";
         }
         try {
-            return SecureUtil.aes(SECRET_KEY.getBytes()).encryptHex(password);
+            return SecureUtil.aes(secretKey.getBytes()).encryptHex(password);
         } catch (Exception e) {
             log.error("密码加密失败", e);
             return password;
@@ -161,7 +185,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
             return "";
         }
         try {
-            return SecureUtil.aes(SECRET_KEY.getBytes()).decryptStr(encrypted);
+            return SecureUtil.aes(secretKey.getBytes()).decryptStr(encrypted);
         } catch (Exception e) {
             log.error("密码解密失败", e);
             return encrypted;

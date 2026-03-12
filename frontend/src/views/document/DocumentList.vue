@@ -80,9 +80,9 @@
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="viewDocument(row.id)">查看</el-button>
-            <el-button type="primary" link @click="editDocument(row)" 
+            <el-button type="primary" link @click="openEditDialog(row)" 
                        v-if="row.status === 'DRAFT'">编辑</el-button>
-            <el-button type="primary" link @click="submitReview(row.id)"
+            <el-button type="primary" link @click="openSubmitDialog(row)"
                        v-if="row.status === 'DRAFT'">提交评审</el-button>
             <el-button type="danger" link @click="deleteDocument(row)"
                        v-if="row.status === 'DRAFT'">删除</el-button>
@@ -105,7 +105,54 @@
 
     <!-- 文档详情弹窗 -->
     <el-dialog v-model="detailVisible" title="文档详情" width="800px" destroy-on-close>
-      <document-detail v-if="detailVisible" :document-id="currentDocId" />
+      <DocumentDetail v-if="detailVisible" :document-id="currentDocId" />
+    </el-dialog>
+
+    <!-- 编辑文档弹窗 -->
+    <el-dialog v-model="editVisible" title="编辑文档" width="600px" destroy-on-close>
+      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="100px">
+        <el-form-item label="文档标题" prop="title">
+          <el-input v-model="editForm.title" placeholder="请输入文档标题" maxlength="200" show-word-limit />
+        </el-form-item>
+        <el-form-item label="评审类型" prop="reviewType">
+          <el-select v-model="editForm.reviewType" placeholder="请选择评审类型">
+            <el-option label="内部评审" value="internal" />
+            <el-option label="外部评审" value="external" />
+            <el-option label="交叉评审" value="cross" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="editForm.description" type="textarea" :rows="3" placeholder="请输入文档描述" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleEditSubmit">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 提交评审弹窗 -->
+    <el-dialog v-model="submitVisible" title="提交评审" width="500px" destroy-on-close>
+      <el-form ref="submitFormRef" :model="submitForm" :rules="submitRules" label-width="100px">
+        <el-form-item label="文档标题">
+          <el-input :value="currentDoc?.title" disabled />
+        </el-form-item>
+        <el-form-item label="评审人" prop="reviewerIds">
+          <el-select v-model="submitForm.reviewerIds" multiple placeholder="请选择评审人" 
+                     filterable :loading="userLoading" style="width: 100%">
+            <el-option
+              v-for="user in userList"
+              :key="user.id"
+              :label="user.realName"
+              :value="user.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="submitVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmitReview">提交</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -113,8 +160,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { request } from '@/api/request'
+import DocumentDetail from './DocumentDetail.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -132,11 +180,23 @@ interface Document {
   archived: boolean
 }
 
+interface User {
+  id: number
+  realName: string
+  username: string
+}
+
 const loading = ref(false)
 const documentList = ref<Document[]>([])
 const selectedRows = ref<Document[]>([])
 const detailVisible = ref(false)
+const editVisible = ref(false)
+const submitVisible = ref(false)
 const currentDocId = ref<number>(0)
+const currentDoc = ref<Document | null>(null)
+const submitting = ref(false)
+const userList = ref<User[]>([])
+const userLoading = ref(false)
 
 const searchForm = reactive({
   title: '',
@@ -149,6 +209,35 @@ const pagination = reactive({
   pageSize: 10,
   total: 0
 })
+
+const editFormRef = ref<FormInstance>()
+const submitFormRef = ref<FormInstance>()
+
+const editForm = reactive({
+  title: '',
+  reviewType: '',
+  description: ''
+})
+
+const submitForm = reactive({
+  reviewerIds: [] as number[]
+})
+
+const editRules: FormRules = {
+  title: [
+    { required: true, message: '请输入文档标题', trigger: 'blur' },
+    { min: 2, max: 200, message: '标题长度在 2 到 200 个字符', trigger: 'blur' }
+  ],
+  reviewType: [
+    { required: true, message: '请选择评审类型', trigger: 'change' }
+  ]
+}
+
+const submitRules: FormRules = {
+  reviewerIds: [
+    { required: true, message: '请选择评审人', trigger: 'change', type: 'array', min: 1 }
+  ]
+}
 
 const getStatusType = (status: string) => {
   const types: Record<string, string> = {
@@ -169,7 +258,8 @@ const getStatusText = (status: string) => {
     REVIEWING: '评审中',
     APPROVED: '已通过',
     REJECTED: '已拒绝',
-    ARCHIVED: '已归档'
+    ARCHIVED: '已归档',
+    REVISION: '待修改'
   }
   return texts[status] || status
 }
@@ -213,26 +303,76 @@ const viewDocument = (id: number) => {
   detailVisible.value = true
 }
 
-const editDocument = (doc: Document) => {
-  // 跳转到编辑页面或打开编辑弹窗
-  ElMessage.info('编辑功能开发中')
+const openEditDialog = async (doc: Document) => {
+  currentDoc.value = doc
+  try {
+    const res = await request.get(`/documents/${doc.id}`)
+    editForm.title = res.data.title || ''
+    editForm.reviewType = res.data.reviewType || ''
+    editForm.description = res.data.description || ''
+    editVisible.value = true
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取文档详情失败')
+  }
 }
 
-const submitReview = async (id: number) => {
+const openSubmitDialog = async (doc: Document) => {
+  currentDoc.value = doc
+  submitForm.reviewerIds = []
+  
+  // 加载用户列表
+  userLoading.value = true
   try {
-    await ElMessageBox.confirm('确定要提交评审吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
-    })
-    await request.post(`/documents/${id}/submit`, { reviewerIds: [] })
-    ElMessage.success('已提交评审')
-    fetchDocuments()
-  } catch (error: any) {
-    if (error.message) {
-      ElMessage.error(error.message)
-    }
+    const res = await request.get('/users/search', { limit: 100 })
+    userList.value = res.data || []
+  } catch (error) {
+    ElMessage.error('获取用户列表失败')
+    return
+  } finally {
+    userLoading.value = false
   }
+  
+  submitVisible.value = true
+}
+
+const handleEditSubmit = async () => {
+  if (!editFormRef.value || !currentDoc.value) return
+  
+  await editFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    
+    submitting.value = true
+    try {
+      await request.put(`/documents/${currentDoc.value.id}`, editForm)
+      ElMessage.success('更新成功')
+      editVisible.value = false
+      fetchDocuments()
+    } catch (error: any) {
+      ElMessage.error(error.message || '更新失败')
+    } finally {
+      submitting.value = false
+    }
+  })
+}
+
+const handleSubmitReview = async () => {
+  if (!submitFormRef.value || !currentDoc.value) return
+  
+  await submitFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    
+    submitting.value = true
+    try {
+      await request.post(`/documents/${currentDoc.value.id}/submit`, { reviewerIds: submitForm.reviewerIds })
+      ElMessage.success('提交评审成功')
+      submitVisible.value = false
+      fetchDocuments()
+    } catch (error: any) {
+      ElMessage.error(error.message || '提交失败')
+    } finally {
+      submitting.value = false
+    }
+  })
 }
 
 const deleteDocument = async (doc: Document) => {
@@ -261,7 +401,7 @@ const handleBatchDelete = async () => {
     })
     
     const ids = selectedRows.value.map(row => row.id)
-    await request.delete('/documents/batch', { ids })
+    await request.delete('/documents/batch', {}, { data: { ids } })
     ElMessage.success('批量删除成功')
     fetchDocuments()
   } catch (error) {
@@ -280,7 +420,7 @@ const fetchDocuments = async () => {
     if (searchForm.status) params.status = searchForm.status
     if (searchForm.reviewType) params.reviewType = searchForm.reviewType
     
-    const res = await request.get('/documents/my', { params })
+    const res = await request.get('/documents/my', params)
     documentList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {

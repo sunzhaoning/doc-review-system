@@ -29,10 +29,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -343,22 +346,47 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         return stats;
     }
     
+    // 扩展名到 MIME type 的映射
+    private static final Map<String, List<String>> ALLOWED_MIME_TYPES = new HashMap<>();
+    static {
+        ALLOWED_MIME_TYPES.put("pdf", List.of("application/pdf"));
+        ALLOWED_MIME_TYPES.put("doc", List.of("application/msword"));
+        ALLOWED_MIME_TYPES.put("docx", List.of("application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
+        ALLOWED_MIME_TYPES.put("xls", List.of("application/vnd.ms-excel"));
+        ALLOWED_MIME_TYPES.put("xlsx", List.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        ALLOWED_MIME_TYPES.put("ppt", List.of("application/vnd.ms-powerpoint"));
+        ALLOWED_MIME_TYPES.put("pptx", List.of("application/vnd.openxmlformats-officedocument.presentationml.presentation"));
+        ALLOWED_MIME_TYPES.put("txt", List.of("text/plain"));
+        ALLOWED_MIME_TYPES.put("md", List.of("text/plain", "text/markdown", "application/octet-stream"));
+    }
+
     /**
      * 校验文件
      */
     private void validateFile(MultipartFile file) {
         // 检查文件大小
         if (file.getSize() > maxFileSize) {
-            throw new BusinessException(ErrorCode.FILE_TOO_LARGE, 
+            throw new BusinessException(ErrorCode.FILE_TOO_LARGE,
                     "文件大小超过限制，最大允许 " + (maxFileSize / 1024 / 1024) + "MB");
         }
-        
-        // 检查文件类型
+
+        // 检查文件扩展名
         String fileExtension = getFileExtension(file.getOriginalFilename());
         List<String> allowedTypeList = Arrays.asList(allowedTypes.split(","));
         if (!allowedTypeList.contains(fileExtension.toLowerCase())) {
-            throw new BusinessException(ErrorCode.FILE_TYPE_NOT_ALLOWED, 
+            throw new BusinessException(ErrorCode.FILE_TYPE_NOT_ALLOWED,
                     "文件类型不允许，允许的类型: " + allowedTypes);
+        }
+
+        // 检查 MIME type 是否与扩展名匹配
+        String contentType = file.getContentType();
+        if (contentType != null) {
+            List<String> expectedMimeTypes = ALLOWED_MIME_TYPES.get(fileExtension.toLowerCase());
+            if (expectedMimeTypes != null && !expectedMimeTypes.contains(contentType)) {
+                log.warn("文件MIME类型不匹配: 扩展名={}, contentType={}", fileExtension, contentType);
+                throw new BusinessException(ErrorCode.FILE_TYPE_NOT_ALLOWED,
+                        "文件内容类型与扩展名不匹配");
+            }
         }
     }
     

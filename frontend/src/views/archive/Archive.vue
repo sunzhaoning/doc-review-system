@@ -167,7 +167,7 @@ const viewDocument = (doc: Archive) => {
 
 const downloadDocument = async (doc: Archive) => {
   try {
-    const res = await request.get(`/documents/${doc.id}/download`, {
+    const res = await request.get(`/documents/${doc.id}/download`, {}, {
       responseType: 'blob'
     })
     const blob = new Blob([res])
@@ -186,7 +186,7 @@ const downloadDocument = async (doc: Archive) => {
 
 const exportReport = async (doc: Archive) => {
   try {
-    const res = await request.get(`/archives/${doc.id}/export`, {
+    const res = await request.get(`/archives/${doc.id}/export`, {}, {
       responseType: 'blob'
     })
     const blob = new Blob([res], { type: 'text/markdown' })
@@ -230,7 +230,7 @@ const fetchArchives = async () => {
       params.endDate = searchForm.dateRange[1]
     }
     
-    const res = await request.get('/archives', { params })
+    const res = await request.get('/archives', params)
     archiveList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
   } catch (error) {

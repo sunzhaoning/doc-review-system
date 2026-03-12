@@ -17,9 +17,9 @@ spring:
   
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/docreview
-    username: docreview
-    password: docreview123
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/docreview}
+    username: ${DB_USERNAME:docreview}
+    password: ${DB_PASSWORD:docreview123}
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
@@ -31,8 +31,8 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: 
-      database: 0
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
       timeout: 5000
       lettuce:
         pool:
@@ -73,11 +73,17 @@ knife4j:
     enable-document-manage: true
     swagger-model-name: 实体类列表
 
+file:
+  max-size: 52428800
+  allowed-types: pdf,docx,doc,xlsx,xls,pptx,ppt,txt,md
+  max-image-size: 5242880
+  allowed-image-types: jpg,jpeg,png,gif,webp
+
 minio:
-  endpoint: http://localhost:9000
-  access-key: minioadmin
-  secret-key: minioadmin
-  bucket-name: doc-review
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket-name: ${MINIO_BUCKET:doc-review}
 
 ldap:
   enabled: false
@@ -88,6 +94,9 @@ ldap:
   user-attribute: sAMAccountName
   email-attribute: mail
   name-attribute: cn
+
+security:
+  encrypt-key: ${ENCRYPT_SECRET_KEY:doc-review-system-secret}
 
 logging:
   level:

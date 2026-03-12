@@ -124,7 +124,7 @@ const getRoleName = (code: string) => {
 const handleSaveInfo = async () => {
   saving.value = true
   try {
-    await request.put(`/users/${userInfo.value?.id}`, {
+    await request.put('/users/profile', {
       realName: userForm.realName,
       email: userForm.email,
       phone: userForm.phone
@@ -175,7 +175,7 @@ onMounted(() => {
   }
   
   // 获取完整用户信息
-  request.get(`/users/${userInfo.value?.id}`).then((res: any) => {
+  request.get('/users/profile').then((res: any) => {
     userForm.email = res.data?.email || ''
     userForm.phone = res.data?.phone || ''
   }).catch(() => {})

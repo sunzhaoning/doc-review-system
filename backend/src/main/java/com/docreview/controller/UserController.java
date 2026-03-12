@@ -1,6 +1,7 @@
 package com.docreview.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.docreview.dto.request.UserCreateRequest;
 import com.docreview.dto.request.UserUpdateRequest;
@@ -44,6 +45,33 @@ public class UserController {
         return Result.success(userService.getPage(current, size, username, realName, status));
     }
     
+    @Operation(summary = "获取当前用户信息")
+    @GetMapping("/profile")
+    public Result<UserResponse> getProfile() {
+        Long userId = StpUtil.getLoginIdAsLong();
+        com.docreview.entity.User user = userService.getById(userId);
+        if (user == null) {
+            return Result.error(40001, "用户不存在");
+        }
+        UserResponse response = new UserResponse();
+        org.springframework.beans.BeanUtils.copyProperties(user, response);
+        response.setRoleIds(userService.getRoleIdsByUserId(userId));
+        return Result.success(response);
+    }
+
+    @Operation(summary = "更新个人信息")
+    @PutMapping("/profile")
+    public Result<Void> updateProfile(@RequestBody UserUpdateRequest request) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        // 仅允许修改昵称、邮箱、手机号
+        UserUpdateRequest safeRequest = new UserUpdateRequest();
+        safeRequest.setRealName(request.getRealName());
+        safeRequest.setEmail(request.getEmail());
+        safeRequest.setPhone(request.getPhone());
+        userService.updateUser(userId, safeRequest);
+        return Result.success();
+    }
+
     @Operation(summary = "搜索用户")
     @GetMapping("/search")
     public Result<List<UserResponse>> search(
