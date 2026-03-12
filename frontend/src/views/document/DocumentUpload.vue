@@ -197,23 +197,23 @@ const searchUsers = async (query: string) => {
 
 const handleSubmit = async () => {
   if (!uploadFormRef.value) return
-  
+
   await uploadFormRef.value.validate(async (valid) => {
     if (!valid) return
-    
+
     if (fileList.value.length === 0) {
       ElMessage.error('请选择要上传的文件')
       return
     }
-    
+
     const file = fileList.value[0]
     if (!file.raw) {
       ElMessage.error('文件数据异常，请重新选择')
       return
     }
-    
+
     uploading.value = true
-    
+
     try {
       const formData = new FormData()
       formData.append('file', file.raw)
@@ -222,17 +222,28 @@ const handleSubmit = async () => {
       if (uploadForm.description) {
         formData.append('description', uploadForm.description)
       }
+      // 数组字段：每个元素单独 append
       if (uploadForm.reviewerIds.length > 0) {
-        formData.append('reviewerIds', JSON.stringify(uploadForm.reviewerIds))
+        uploadForm.reviewerIds.forEach(id => {
+          formData.append('reviewerIds', String(id))
+        })
       }
+      // 日期格式化为本地时间字符串 (yyyy-MM-ddTHH:mm:ss)
       if (uploadForm.deadline) {
-        formData.append('deadline', uploadForm.deadline)
+        const date = new Date(uploadForm.deadline)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        const seconds = String(date.getSeconds()).padStart(2, '0')
+        formData.append('deadline', `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`)
       }
-      
+
       await request.post('/documents', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      
+
       ElMessage.success('文档上传成功')
       router.push('/document/list')
     } catch (error: any) {

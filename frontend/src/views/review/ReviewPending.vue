@@ -52,7 +52,7 @@
     </el-card>
 
     <!-- 评审弹窗 -->
-    <el-dialog v-model="reviewVisible" title="文档评审" width="700px" destroy-on-close>
+    <el-dialog v-model="reviewVisible" title="文档评审" width="800px" destroy-on-close @close="resetForm">
       <el-form ref="reviewFormRef" :model="reviewForm" :rules="reviewRules" label-width="100px">
         <el-form-item label="文档信息">
           <div class="doc-info">
@@ -62,10 +62,14 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="文档预览">
-          <el-button type="primary" link @click="previewDocument">
+        <el-form-item label="文档操作">
+          <el-button type="primary" @click="previewDocument">
             <el-icon><View /></el-icon>
-            查看原文
+            预览文档
+          </el-button>
+          <el-button @click="downloadDocument">
+            <el-icon><Download /></el-icon>
+            下载文档
           </el-button>
         </el-form-item>
 
@@ -77,23 +81,37 @@
         </el-form-item>
 
         <el-form-item label="总体评价" prop="overallComment">
-          <el-input v-model="reviewForm.overallComment" type="textarea" :rows="3" 
-                    placeholder="请输入总体评价" maxlength="2000" show-word-limit />
+          <div class="comment-wrapper">
+            <el-input 
+              v-model="reviewForm.overallComment" 
+              type="textarea" 
+              :rows="5" 
+              placeholder="请输入总体评价&#10;&#10;提示：可直接粘贴截图（Ctrl+V 或 Command+V），截图将自动上传" 
+              maxlength="5000" 
+              show-word-limit
+              @paste="handlePaste"
+            />
+            <div v-if="reviewForm.images.length > 0" class="image-preview-list">
+              <div v-for="(img, index) in reviewForm.images" :key="index" class="image-preview-item">
+                <img :src="img.url" :alt="img.name" />
+                <el-button type="danger" size="small" circle @click="removeImage(index)">
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </div>
+            </div>
+          </div>
         </el-form-item>
 
         <el-form-item label="优点">
-          <el-input v-model="reviewForm.pros" type="textarea" :rows="2" 
-                    placeholder="文档的优点" />
+          <el-input v-model="reviewForm.pros" type="textarea" :rows="2" placeholder="文档的优点" />
         </el-form-item>
 
         <el-form-item label="不足">
-          <el-input v-model="reviewForm.cons" type="textarea" :rows="2" 
-                    placeholder="需要改进的地方" />
+          <el-input v-model="reviewForm.cons" type="textarea" :rows="2" placeholder="需要改进的地方" />
         </el-form-item>
 
         <el-form-item label="建议">
-          <el-input v-model="reviewForm.suggestions" type="textarea" :rows="2" 
-                    placeholder="修改建议" />
+          <el-input v-model="reviewForm.suggestions" type="textarea" :rows="2" placeholder="修改建议" />
         </el-form-item>
       </el-form>
 
@@ -132,11 +150,17 @@ interface Review {
   createdAt: string | null
 }
 
+interface UploadedImage {
+  name: string
+  url: string
+}
+
 const loading = ref(false)
 const reviewList = ref<Review[]>([])
 const reviewVisible = ref(false)
 const currentReview = ref<Review | null>(null)
 const submitting = ref(false)
+const uploadingImage = ref(false)
 
 const pagination = reactive({
   page: 1,
@@ -150,7 +174,8 @@ const reviewForm = reactive({
   overallComment: '',
   pros: '',
   cons: '',
-  suggestions: ''
+  suggestions: '',
+  images: [] as UploadedImage[]
 })
 
 const reviewRules: FormRules = {
@@ -210,7 +235,12 @@ const viewDocument = (review: Review) => {
   reviewForm.pros = review.pros || ''
   reviewForm.cons = review.cons || ''
   reviewForm.suggestions = review.suggestions || ''
+  reviewForm.images = []
   reviewVisible.value = true
+}
+
+const resetForm = () => {
+  reviewForm.images = []
 }
 
 const previewDocument = async () => {
@@ -219,10 +249,86 @@ const previewDocument = async () => {
     const res = await request.get(`/documents/${currentReview.value.documentId}/preview`)
     if (res.data) {
       window.open(res.data, '_blank')
+    } else {
+      ElMessage.warning('暂不支持预览此文件类型')
     }
-  } catch (error) {
-    ElMessage.error('获取预览链接失败')
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取预览链接失败')
   }
+}
+
+const downloadDocument = async () => {
+  if (!currentReview.value) return
+  try {
+    const res = await request.get(`/documents/${currentReview.value.documentId}/download`, {}, {
+      responseType: 'blob'
+    })
+    const blob = new Blob([res])
+    const url = window.URL.createObjectURL(blob)
+    const link = window.document.createElement('a')
+    link.href = url
+    link.download = currentReview.value.documentTitle || 'document'
+    window.document.body.appendChild(link)
+    link.click()
+    window.document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('下载成功')
+  } catch (error: any) {
+    ElMessage.error(error.message || '下载失败')
+  }
+}
+
+const handlePaste = async (event: ClipboardEvent) => {
+  const items = event.clipboardData?.items
+  if (!items) return
+  
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      event.preventDefault()
+      const file = item.getAsFile()
+      if (file) {
+        await uploadImage(file)
+      }
+      break
+    }
+  }
+}
+
+const uploadImage = async (file: File) => {
+  if (uploadingImage.value) return
+  
+  uploadingImage.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', 'comment')
+    
+    const res = await request.post('/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    
+    if (res.data) {
+      const imageUrl = res.data.url || res.data
+      reviewForm.images.push({
+        name: file.name,
+        url: imageUrl
+      })
+      // 在评论中插入图片标记
+      reviewForm.overallComment += `\n[图片: ${imageUrl}]\n`
+      ElMessage.success('图片上传成功')
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '图片上传失败')
+  } finally {
+    uploadingImage.value = false
+  }
+}
+
+const removeImage = (index: number) => {
+  const img = reviewForm.images[index]
+  // 从评论中移除图片标记
+  reviewForm.overallComment = reviewForm.overallComment.replace(`\n[图片: ${img.url}]\n`, '')
+  reviewForm.images.splice(index, 1)
 }
 
 const submitReview = async () => {
@@ -291,5 +397,37 @@ onMounted(() => {
 
 .doc-info p {
   margin: 8px 0;
+}
+
+.comment-wrapper {
+  width: 100%;
+}
+
+.image-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.image-preview-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-preview-item .el-button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
 }
 </style>

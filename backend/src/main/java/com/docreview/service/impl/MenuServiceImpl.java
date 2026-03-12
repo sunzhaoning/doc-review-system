@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,13 +37,13 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     @Override
     public List<MenuTreeResponse> getMenuTree() {
         List<Menu> menus = baseMapper.selectAllMenus();
-        return buildMenuTree(menus, 0L);
+        return buildMenuTree(menus);
     }
     
     @Override
     public List<MenuTreeResponse> getUserMenuTree(Long userId) {
         List<Menu> menus = getMenusByUserId(userId);
-        return buildMenuTree(menus, 0L);
+        return buildMenuTree(menus);
     }
     
     @Override
@@ -90,20 +91,36 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     }
     
     /**
-     * 构建菜单树
+     * 构建菜单树（支持任意顺序的菜单列表）
      */
-    private List<MenuTreeResponse> buildMenuTree(List<Menu> menus, Long parentId) {
-        List<MenuTreeResponse> tree = new ArrayList<>();
+    private List<MenuTreeResponse> buildMenuTree(List<Menu> menus) {
+        if (menus == null || menus.isEmpty()) {
+            return new ArrayList<>();
+        }
         
-        for (Menu menu : menus) {
-            if (menu.getParentId().equals(parentId)) {
-                MenuTreeResponse node = new MenuTreeResponse();
-                BeanUtils.copyProperties(menu, node);
-                node.setChildren(buildMenuTree(menus, menu.getId()));
-                tree.add(node);
+        // 先将所有菜单转换为响应对象，并按 parentId 分组
+        Map<Long, List<MenuTreeResponse>> menuMap = menus.stream()
+                .map(menu -> {
+                    MenuTreeResponse node = new MenuTreeResponse();
+                    BeanUtils.copyProperties(menu, node);
+                    return node;
+                })
+                .collect(Collectors.groupingBy(MenuTreeResponse::getParentId));
+        
+        // 为每个菜单设置子菜单
+        for (MenuTreeResponse node : menuMap.values().stream().flatMap(List::stream).collect(Collectors.toList())) {
+            List<MenuTreeResponse> children = menuMap.get(node.getId());
+            if (children != null && !children.isEmpty()) {
+                // 按 sort 排序子菜单
+                children.sort(Comparator.comparingInt(MenuTreeResponse::getSort));
+                node.setChildren(children);
             }
         }
         
-        return tree;
+        // 获取根节点（parentId = 0）并排序
+        List<MenuTreeResponse> rootMenus = menuMap.getOrDefault(0L, new ArrayList<>());
+        rootMenus.sort(Comparator.comparingInt(MenuTreeResponse::getSort));
+        
+        return rootMenus;
     }
 }

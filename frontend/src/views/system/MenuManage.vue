@@ -119,6 +119,9 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { request } from '@/api/request'
+import { useMenuStore } from '@/stores/menuStore'
+
+const menuStore = useMenuStore()
 
 interface Menu {
   id: number
@@ -239,6 +242,7 @@ const handleDelete = async (menu: Menu) => {
     await request.delete(`/menus/${menu.id}`)
     ElMessage.success('删除成功')
     fetchMenus()
+    menuStore.refreshMenus() // 刷新侧边栏菜单
   } catch {
     // 用户取消
   }
@@ -261,6 +265,7 @@ const handleSubmit = async () => {
       }
       dialogVisible.value = false
       fetchMenus()
+      menuStore.refreshMenus() // 刷新侧边栏菜单
     } catch (error: any) {
       ElMessage.error(error.message || '操作失败')
     } finally {

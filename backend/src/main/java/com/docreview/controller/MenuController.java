@@ -35,6 +35,13 @@ public class MenuController {
         return Result.success(menuService.getMenuTree());
     }
     
+    @Operation(summary = "获取菜单列表")
+    @SaCheckPermission("sys:menu:list")
+    @GetMapping
+    public Result<List<MenuTreeResponse>> getMenuList() {
+        return Result.success(menuService.getMenuTree());
+    }
+    
     @Operation(summary = "获取当前用户菜单")
     @GetMapping("/user")
     public Result<List<MenuTreeResponse>> getCurrentUserMenus() {

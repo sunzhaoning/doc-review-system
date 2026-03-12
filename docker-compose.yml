@@ -98,7 +98,8 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET:-doc-review}
       # Sa-Token 配置
-      SA_TOKEN_TOKEN_NAME: ${SA_TOKEN_TOKEN_NAME:-satoken}
+      # 注意：token-name 在 application.yml 中配置为 Authorization
+      # 这里不需要设置 SA_TOKEN_TOKEN_NAME，避免覆盖
       SA_TOKEN_TIMEOUT: ${SA_TOKEN_TIMEOUT:-86400}
       # AD 域配置
       AD_ENABLED: ${AD_ENABLED:-false}

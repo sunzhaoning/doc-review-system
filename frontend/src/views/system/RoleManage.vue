@@ -345,11 +345,11 @@ const handleAssignMenu = async (role: Role) => {
 
 const handleSaveMenus = async () => {
   if (!currentRole.value || !menuTreeRef.value) return
-  
+
   submitting.value = true
   try {
     const menuIds = menuTreeRef.value.getCheckedKeys()
-    await request.put(`/roles/${currentRole.value.id}/menus`, menuIds)
+    await request.put(`/roles/${currentRole.value.id}/menus`, { menuIds })
     ElMessage.success('菜单分配成功')
     menuDialogVisible.value = false
   } catch (error: any) {
@@ -364,8 +364,8 @@ const handleAssignPermission = async (role: Role) => {
   
   // 获取所有权限
   try {
-    const res = await request.get('/permissions', { size: 1000 })
-    allPermissions.value = res.data?.records || []
+    const res = await request.get('/permissions/all')
+    allPermissions.value = res.data || []
   } catch {
     ElMessage.error('获取权限列表失败')
     return
@@ -384,10 +384,10 @@ const handleAssignPermission = async (role: Role) => {
 
 const handleSavePermissions = async () => {
   if (!currentRole.value) return
-  
+
   submitting.value = true
   try {
-    await request.put(`/roles/${currentRole.value.id}/permissions`, selectedPermIds.value)
+    await request.put(`/roles/${currentRole.value.id}/permissions`, { permissionIds: selectedPermIds.value })
     ElMessage.success('权限分配成功')
     permDialogVisible.value = false
   } catch (error: any) {

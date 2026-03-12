@@ -14,68 +14,27 @@
         router
         class="sidebar-menu"
       >
-        <el-menu-item index="/dashboard">
-          <el-icon><HomeFilled /></el-icon>
-          <template #title>首页</template>
-        </el-menu-item>
-        
-        <el-sub-menu index="document">
-          <template #title>
-            <el-icon><Document /></el-icon>
-            <span>文档管理</span>
-          </template>
-          <el-menu-item index="/document/list">
-            <el-icon><Files /></el-icon>
-            <template #title>我的文档</template>
+        <!-- 动态菜单 -->
+        <template v-for="menu in dynamicMenus" :key="menu.id">
+          <!-- 目录类型 -->
+          <el-sub-menu v-if="menu.menuType === 1 && menu.children?.length" :index="'menu-' + menu.id">
+            <template #title>
+              <el-icon v-if="menu.icon"><component :is="menu.icon" /></el-icon>
+              <span>{{ menu.menuName }}</span>
+            </template>
+            <template v-for="child in menu.children" :key="child.id">
+              <el-menu-item v-if="child.menuType === 2 && child.status === 1 && child.visible === 1" :index="child.path">
+                <el-icon v-if="child.icon"><component :is="child.icon" /></el-icon>
+                <template #title>{{ child.menuName }}</template>
+              </el-menu-item>
+            </template>
+          </el-sub-menu>
+          <!-- 菜单类型 -->
+          <el-menu-item v-else-if="menu.menuType === 2 && menu.status === 1 && menu.visible === 1" :index="menu.path">
+            <el-icon v-if="menu.icon"><component :is="menu.icon" /></el-icon>
+            <template #title>{{ menu.menuName }}</template>
           </el-menu-item>
-          <el-menu-item index="/document/upload">
-            <el-icon><Upload /></el-icon>
-            <template #title>上传文档</template>
-          </el-menu-item>
-        </el-sub-menu>
-        
-        <el-sub-menu index="review">
-          <template #title>
-            <el-icon><Edit /></el-icon>
-            <span>评审管理</span>
-          </template>
-          <el-menu-item index="/review/pending">
-            <el-icon><Clock /></el-icon>
-            <template #title>待评审</template>
-          </el-menu-item>
-          <el-menu-item index="/review/history">
-            <el-icon><Finished /></el-icon>
-            <template #title>评审历史</template>
-          </el-menu-item>
-        </el-sub-menu>
-        
-        <el-menu-item index="/archive">
-          <el-icon><FolderOpened /></el-icon>
-          <template #title>归档检索</template>
-        </el-menu-item>
-        
-        <el-sub-menu v-if="showSystemMenu" index="system">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
-          </template>
-          <el-menu-item index="/system/user">
-            <el-icon><User /></el-icon>
-            <template #title>用户管理</template>
-          </el-menu-item>
-          <el-menu-item index="/system/role">
-            <el-icon><UserFilled /></el-icon>
-            <template #title>角色管理</template>
-          </el-menu-item>
-          <el-menu-item index="/system/menu">
-            <el-icon><Menu /></el-icon>
-            <template #title>菜单管理</template>
-          </el-menu-item>
-          <el-menu-item index="/system/permission">
-            <el-icon><Lock /></el-icon>
-            <template #title>权限管理</template>
-          </el-menu-item>
-        </el-sub-menu>
+        </template>
       </el-menu>
     </el-aside>
     
@@ -141,15 +100,18 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
+import { useMenuStore } from '@/stores/menuStore'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const menuStore = useMenuStore()
 
 const isCollapse = ref(false)
 
 const userInfo = computed(() => authStore.userInfo)
 const activeMenu = computed(() => route.path)
+const dynamicMenus = computed(() => menuStore.menuList)
 
 const breadcrumbs = computed(() => {
   const matched = route.matched.filter(item => item.meta?.title)
@@ -157,10 +119,6 @@ const breadcrumbs = computed(() => {
     path: item.path,
     title: item.meta?.title as string
   }))
-})
-
-const showSystemMenu = computed(() => {
-  return authStore.hasRole('admin') || authStore.hasPermission('system:manage')
 })
 
 const toggleCollapse = () => {
@@ -183,6 +141,7 @@ const handleCommand = async (command: string) => {
           type: 'warning'
         })
         await authStore.logout()
+        menuStore.clearMenus()
         ElMessage.success('已退出登录')
         router.push('/login')
       } catch {
@@ -198,8 +157,12 @@ onMounted(async () => {
       await authStore.getUserInfo()
     } catch (error) {
       router.push('/login')
+      return
     }
   }
+  
+  // 加载动态菜单
+  await menuStore.loadMenus()
 })
 </script>
 
